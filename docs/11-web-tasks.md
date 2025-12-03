@@ -1,16 +1,16 @@
 # Web Frontend Development Tasks (Vue 3 + TypeScript)
 
-**Directory**: `/web`
+**Directory**: `/backend/frontend` (embedded in Go binary for production)
 
 ---
 
 ## Phase 1: Foundation & Core Logging
 
-### 1.1 Project Setup
-- [ ] Initialize Vite project: `npm create vite@latest web -- --template vue-ts`
-- [ ] Create directory structure:
+### 1.1 Project Setup ✅ COMPLETE
+- [x] Initialize Vite project with Vue 3 + TypeScript
+- [x] Create directory structure:
   ```
-  web/
+  backend/frontend/
   ├── src/
   │   ├── api/
   │   │   ├── client.ts          # Axios instance

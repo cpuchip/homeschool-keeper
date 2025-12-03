@@ -1,0 +1,44 @@
+name: homeschool_keeper
+description: "Homeschool record keeping and logging app for parents"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0
+  flutter: ^3.38.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  go_router: ^14.8.1
+  dio: ^5.8.0
+  hive: ^4.0.0
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
+  connectivity_plus: ^6.1.4
+  intl: ^0.20.2
+  image_picker: ^1.1.2
+  flutter_secure_storage: ^9.2.4
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.4
+  uuid: ^4.5.1
+  fl_chart: ^0.71.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.15
+  riverpod_generator: ^2.6.3
+  freezed: ^2.5.8
+  json_serializable: ^6.9.4
+  hive_generator: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
