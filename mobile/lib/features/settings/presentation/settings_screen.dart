@@ -11,8 +11,8 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            title: const Text('Settings'),
+          const SliverAppBar.large(
+            title: Text('Settings'),
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),

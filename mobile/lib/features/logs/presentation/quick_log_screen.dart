@@ -81,7 +81,7 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
                     const SizedBox(height: 8),
                     // TODO: Replace with actual student list
                     DropdownButtonFormField<String>(
-                      value: _selectedStudent,
+                      initialValue: _selectedStudent,
                       decoration: const InputDecoration(
                         hintText: 'Select a student',
                       ),
@@ -171,11 +171,11 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
                         setState(() => _hours = value);
                       },
                     ),
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('15 min'),
-                        const Text('8 hours'),
+                        Text('15 min'),
+                        Text('8 hours'),
                       ],
                     ),
                   ],

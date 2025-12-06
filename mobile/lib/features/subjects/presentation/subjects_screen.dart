@@ -9,8 +9,8 @@ class SubjectsScreen extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            title: const Text('Subjects'),
+          const SliverAppBar.large(
+            title: Text('Subjects'),
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
