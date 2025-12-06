@@ -355,6 +355,7 @@ I have time to wait for a solid implementation, so no rush.
 2. We need to have a a testing first approach here, everything should be solid: Unit tests, integration tests, e2e tests for both web and mobile. Do you have any preferences on testing frameworks or coverage requirements? I have wanted to learn and get into playwright for e2e testing for a while, so I think that would be a good fit for web e2e tests. For unit tests we can use the standard testing libraries for each platform (Go testing package, Vue Test Utils + Vitest, Flutter's test package). What do you think?
 3. I'm worried about protecting user data and privacy, especially for minors. We should have a clear privacy policy and terms of service. Do you have any legal resources or templates we can use to draft these documents? Also, do you have any specific data protection measures you want to implement beyond standard security practices? We also cannot let data leak from one organization to another, or from one family to another. We need to make sure our data access layers are solid and well tested to prevent any accidental data leaks. We should also encrypt sensitive data at rest and in transit. What are your thoughts on this?
 4. We need to have a solid plan about protecting data integrity, mongodb backups, s3 backups, offline sync may help with that too. Do you have any preferences or requirements for backup frequency, retention policies, or disaster recovery plans? When we have a first release lets focus on protecting user data as much as possible, but encrypted, see question 3 above.
+5. I'm worried about the tangling of families and orgs and slowing down our first version, but I really want to make this app as flexible as possible. Do you think we should simplify the data model for phase 1 to just 1 org = 1 family, and then add co-op support later? Or do you want to tackle the more complex model from the start? I think we can do it from the start, but it may slow us down a bit. What do you think?
 
 ---
 
@@ -362,7 +363,7 @@ I have time to wait for a solid implementation, so no rush.
 
 *Any other context, preferences, or requirements I should know:*
 
-I've never mad an app this wide scale before and a lot of it is out of my scope/whellhouse, so I want to make sure we do this right. I'm excited about this project and want to make it a great tool for homeschooling families. Let's keep communication open and iterate as needed to make sure we're aligned on goals and implementation.
+I've never made an app this wide scale before and a lot of it is out of my scope/whellhouse, so I want to make sure we do this right. I'm excited about this project and want to make it a great tool for homeschooling families. Let's keep communication open and iterate as needed to make sure we're aligned on goals and implementation.
 
 
 ---
