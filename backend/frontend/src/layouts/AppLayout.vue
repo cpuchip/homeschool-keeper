@@ -72,8 +72,8 @@ async function handleLogout() {
 
       <div class="absolute bottom-0 left-0 right-0 p-4 border-t">
         <button
-          @click="handleLogout"
           class="w-full btn-secondary text-sm"
+          @click="handleLogout"
         >
           Sign Out
         </button>

@@ -39,7 +39,7 @@ async function handleSubmit() {
   <div class="max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Quick Log</h1>
 
-    <form @submit.prevent="handleSubmit" class="card space-y-6">
+    <form class="card space-y-6" @submit.prevent="handleSubmit">
       <!-- Student -->
       <div>
         <label for="student" class="label">Student</label>
@@ -64,8 +64,8 @@ async function handleSubmit() {
         <div class="mt-2 flex items-center justify-center space-x-4">
           <button
             type="button"
-            @click="decrementHours"
             class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 text-2xl font-bold"
+            @click="decrementHours"
           >
             −
           </button>
@@ -74,8 +74,8 @@ async function handleSubmit() {
           </div>
           <button
             type="button"
-            @click="incrementHours"
             class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 text-2xl font-bold"
+            @click="incrementHours"
           >
             +
           </button>
@@ -86,13 +86,13 @@ async function handleSubmit() {
             v-for="preset in [0.5, 1, 1.5, 2, 3]"
             :key="preset"
             type="button"
-            @click="setHours(preset)"
             :class="[
               'px-3 py-1 rounded-full text-sm',
               hours === preset
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             ]"
+            @click="setHours(preset)"
           >
             {{ preset }}h
           </button>
@@ -117,8 +117,8 @@ async function handleSubmit() {
         <div class="mt-2 flex space-x-4">
           <label class="flex items-center">
             <input
-              type="radio"
               v-model="location"
+              type="radio"
               value="home"
               class="h-4 w-4 text-primary-600 focus:ring-primary-500"
             />
@@ -126,8 +126,8 @@ async function handleSubmit() {
           </label>
           <label class="flex items-center">
             <input
-              type="radio"
               v-model="location"
+              type="radio"
               value="other"
               class="h-4 w-4 text-primary-600 focus:ring-primary-500"
             />
