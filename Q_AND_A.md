@@ -398,6 +398,36 @@ Does that make sense? lets discuss more if needed.
 
 ---
 
+### 🤖 Copilot Response to Q24
+
+**Yes, this makes sense!** Let me restate to confirm understanding:
+
+**"Write-Through" Log Model**:
+1. When org admin logs for multiple students → system creates **one LogEntry per student**, each owned by that student's family
+2. Each LogEntry has `familyId` (ownership) + `organizationId` (visibility)
+3. Org sees all logs via `organizationId` filter
+4. Family sees their logs via `familyId` filter
+
+**On Org Exit**:
+1. Family's logs **already belong to them** - no cloning needed for logs
+2. What DOES need cloning/snapshotting:
+   - Org-level metadata on their logs (teacher name, org subject mappings, etc.)
+   - Any org-shared subjects they used (copy to family's subjects)
+3. After exit: `organizationId` cleared or left as historical reference
+
+**Edge Cases to Handle**:
+- What if org deletes a shared subject? (Family's logs reference orphan ID)
+- What if org modifies log description? (Should family's copy update?)
+- Recommendation: **Snapshot at log creation time** - log stores teacher name/subject name directly, not just IDs
+
+**Shall I update the data model in HMS_LOGS_IMP.md to reflect this snapshotting approach?**
+
+I worry about the caching problems of denormalizing data. As for deleting, if we just mark records as "deleted" instead of actually deleting them, we can avoid orphaned references. We should also make sure that when a family leaves an org, we snapshot any org-level metadata they need to keep for their logs and subjects.
+
+when an org modifies a log description, we should only update the family's logs if they are identical to the org's log at that time. If the family has modified their log, we should not overwrite it. So we can do a check before updating to see if the family's log matches the org's log, and only update if they are the same. if they are different then we should display both versions in the UI so the family can see what changed in the org's log and decide if they want to update their own log or keep their version.
+
+---
+
 ### Q25: Testing Coverage Target
 You mentioned testing-first. What's the minimum coverage bar before we consider code "done"?
 

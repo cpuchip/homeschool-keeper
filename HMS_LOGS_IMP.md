@@ -10,36 +10,39 @@
 
 ---
 
-## 📋 Confirmed Decisions (from Q&A)
+## 📋 Confirmed Decisions (from Q&A - Final)
 
 ### Authentication
 | Decision | Value |
 |----------|-------|
-| Web Auth | Email/Password with cookie sessions (Google OAuth later) |
-| Mobile Auth | JWT tokens |
+| Web Auth | Email/Password with cookie sessions (Google OAuth Phase 2) |
+| Mobile Auth | JWT tokens (standard approach) |
 | Session Duration | 30 days |
+| COPPA | Full compliance with verifiable parental consent for under-13 |
 
 ### User Model
 | Decision | Value |
 |----------|-------|
 | Roles | admin, parent/adult, student |
 | Multi-Family | Yes - families can join organizations (co-ops) |
-| Data Ownership | Family-first - logs belong to family, optionally shared with org |
+| Data Ownership | **Family-first with org overlay** - logs always belong to family |
+| Org Exit | Clone/snapshot data to family when leaving org (both keep copies) |
 
 ### Hour Logging
 | Decision | Value |
 |----------|-------|
-| Default Increment | 0.25 hours (15 minutes), configurable per org |
-| Log Status | Auto-approved by default, configurable per org |
-| Locations | Managed collection per family/org, quick-add on the fly |
+| Default Increment | 0.25 hours (15 minutes), configurable per family |
+| Log Status | Auto-approved by default, configurable per family/org |
+| Locations | Managed collection per family, quick-add on the fly |
+| Org Logging | Creates individual copies per student's family (write-through) |
 
 ### Subjects & School Year
 | Decision | Value |
 |----------|-------|
 | Default Subjects | Ask during onboarding (Missouri defaults as starting point) |
-| Target Hours | Optional per-subject targets, configurable per org/family |
-| School Year | Fully configurable per organization |
-| Multi-Year | Full history with year switching, archivable |
+| Target Hours | Optional per-subject targets, configurable per family |
+| School Year | Fully configurable per family during onboarding |
+| Multi-Year | Full history with year switching, archivable/read-only |
 
 ### UI/Branding
 | Decision | Value |
@@ -52,20 +55,89 @@
 | Decision | Value |
 |----------|-------|
 | Platforms | Both Android & iOS (iOS CI disabled until Mac available) |
-| Offline | Basic offline with sync when online (full offline later) |
+| Offline | Basic offline with sync (Phase 1B), full offline (Phase 2) |
 
-### Quality
+### Quality & Security
 | Decision | Value |
 |----------|-------|
-| Testing | Testing-first approach |
-| Stack | Go testing + testify, Vitest + Vue Test Utils, Playwright E2E, Flutter test |
-| Privacy | Encrypt sensitive data, strict data isolation between orgs/families |
+| Testing | Testing-first, 60%+ coverage, critical paths higher |
+| Test Stack | Go testify, testcontainers-go, Vitest, Playwright, Hurl, Flutter test |
+| Encryption | AES-256 for all data at rest, TLS in transit |
+| Backups | Hourly for 24h, daily for 30 days (investigate Dokploy options) |
+| Data Isolation | Strict family/org boundaries, thoroughly tested |
 
 ### Timeline
 | Decision | Value |
 |----------|-------|
 | Pace | No rush - do it right |
 | Priority | Auth → Students → Subjects → Logs → Stats → Dashboard → Mobile |
+
+---
+
+## 🏛️ Architecture: Family-First Data Model
+
+### Core Principle
+**Family is the atomic unit of data ownership.** Every student, log, and subject belongs to exactly one family. Organizations are optional overlays for co-op features.
+
+### Entity Relationships
+```
+Family (core unit)
+├── Users (admin, parent roles)
+├── Students
+├── Subjects
+├── Locations
+├── Log Entries (always owned by family)
+└── School Years
+
+Organization (optional co-op)
+├── Member Families (many-to-many)
+├── Shared Subjects (optional)
+└── Org-level Log References (not ownership)
+```
+
+### Log Ownership Pattern (Write-Through)
+
+When an org admin logs hours for students from multiple families:
+
+**Scenario**: Family A's admin teaches Math at co-op for students A.01 and B.01
+
+**What happens**:
+1. Admin submits one "org log" for the session
+2. System creates **individual LogEntry records** for each student, owned by their family
+3. Each family's log has `familyId` set to their family
+4. Each log has `organizationId` set to show it was a co-op activity
+5. Org can query all logs with their `organizationId` for reporting
+
+**When Family B leaves the org**:
+1. Family B's logs remain unchanged (they own them via `familyId`)
+2. Org loses visibility to Family B's logs (filter by `organizationId` excludes them)
+3. Any org-level metadata (teacher name, etc.) is snapshotted into Family B's logs at exit time
+4. No data loss for either party
+
+### Data Isolation Rules
+
+| Query Type | Filter Applied |
+|------------|----------------|
+| Family viewing their logs | `familyId == user.familyId` |
+| Org admin viewing org logs | `organizationId == org.id` AND family is still member |
+| Stats calculation | Always scoped to `familyId` (family's own numbers) |
+| Cross-family access | **NEVER** - enforced at repository layer |
+
+### Encryption Strategy
+
+**Tiered Approach** (balancing security vs. performance):
+
+| Tier | Data | Encryption |
+|------|------|------------|
+| **Tier 1** (Always) | Passwords | bcrypt hash (not reversible) |
+| **Tier 2** (PII) | DOB, addresses, file attachments | AES-256 field-level encryption |
+| **Tier 3** (Content) | Log descriptions, notes | AES-256 field-level encryption |
+| **Tier 4** (Metadata) | Names, timestamps, IDs | Disk encryption (server-level) |
+
+**Key Management**: 
+- Per-family encryption key derived from master key + familyId
+- Master key stored in environment variable (not in DB)
+- Enables data portability (family can decrypt their own data on export)
 
 ---
 
