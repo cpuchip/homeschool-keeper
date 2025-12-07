@@ -468,12 +468,32 @@ Since students may be under 13, COPPA (Children's Online Privacy Protection Act)
 **Options**:
 - [ ] A) Require parental consent before any student account creation
 - [ ] B) Students under 13 cannot have their own login (parent logs for them)
-- [x] C) Full COPPA flow with verifiable parental consent
+- [ ] C) Full COPPA flow with verifiable parental consent
 - [ ] D) Research this more before deciding
+- [x] E) **Adults-only signup with parent-controlled student accounts** ✅ NEW
 
 **Your Answer**: 
 
-This will be a pain, but we should comply fully with the law. So let's implement a full COPPA flow with verifiable parental consent before allowing student account creation. We can research best practices and legal requirements to make sure we're doing this right.
+~~This will be a pain, but we should comply fully with the law. So let's implement a full COPPA flow with verifiable parental consent before allowing student account creation.~~
+
+**UPDATED (Dec 6, 2025)**: After researching COPPA, we realized our parent-controlled model **avoids most COPPA requirements**:
+
+**Why COPPA Doesn't Apply (or applies minimally):**
+1. **Adults-only signup** - Only parents/adults can create accounts
+2. **Parents enter all student data** - Per FTC FAQ A.8: "COPPA only applies to personal information collected online **from children**... Does COPPA apply to information about children collected online from parents or other adults? **No.**"
+3. **Parent creates student logins** - From within family portal, parent sets username/password or sends invite
+4. **Parent already consented** - By creating the student account, parent implicitly consents to student's app usage
+
+**New Flow:**
+- Adults sign up → Create family → Add students (parent enters all info) → Optionally create student login
+- No age-gating needed at signup (adults only)
+- No verifiable parental consent flow needed
+- DateOfBirth is optional (parent's choice to track, not legal requirement)
+
+**Still Needed:**
+- Clear privacy policy explaining data practices
+- Statement that parents control all student accounts
+- Data retention and deletion policies
 
 ---
 
@@ -486,8 +506,8 @@ You mentioned encrypting sensitive data. What specifically should be encrypted a
 - [ ] Student date of birth
 - [ ] Log descriptions/notes
 - [x] File attachments (work samples)
-- [x] All PII fields
-- [x] Everything in the database
+- [ ] All PII fields
+- [x] Filesystem -> Everything in the database
 
 **Your Answer**: 
 
@@ -565,6 +585,37 @@ What do you want the AGENTS.md file to help with?
 **Your Answer**:
 
 For other, I want an agent that will help with writing customer facing documentation, one that will help me research the various states homeschooling laws and requirements, and one that will help me with marketing copy and ideas for promoting the app once it's ready to launch.
+
+---
+
+### Q33: Parent-Controlled Signup Model (Added Dec 6, 2025)
+Based on COPPA research, should we switch from "full COPPA flow" to "parent-controlled accounts"?
+
+**The Key Insight (from FTC FAQ A.8)**:
+> "Does COPPA apply to information about children collected online from parents or other adults? **No.** COPPA only applies to personal information collected online from children."
+
+**New Proposed Flow**:
+1. Only adults can sign up (no public student registration)
+2. Parents add students from within their family portal (parent enters all student info)
+3. Parents can optionally create student logins (username/password or email invite)
+4. This means COPPA is NOT triggered - parent is entering the data, not the child
+
+**Options**:
+- [x] A) Yes, switch to parent-controlled model (simpler, COPPA-compliant by design)
+- [ ] B) Keep planning for full COPPA flow anyway (extra protection)
+- [ ] C) Need to research more
+
+**Your Answer**: 
+
+**DECISION (Dec 6, 2025)**: Going with parent-controlled model. This makes the app much simpler to build while still being fully compliant with privacy law. Key points:
+
+1. Adults-only public signup
+2. Parents create and manage all student accounts
+3. No age-gating or verifiable parental consent flow needed
+4. DateOfBirth is optional (parent's choice)
+5. Still need clear privacy policy
+
+This is the same model used by many family/parenting apps and is specifically addressed in FTC's COPPA FAQ.
 
 ---
 

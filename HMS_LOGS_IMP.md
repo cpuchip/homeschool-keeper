@@ -18,12 +18,15 @@
 | Web Auth | Email/Password with cookie sessions (Google OAuth Phase 2) |
 | Mobile Auth | JWT tokens (standard approach) |
 | Session Duration | 30 days |
-| COPPA | Full compliance with verifiable parental consent for under-13 |
+| Signup Model | **Adults-only signup** - parents create student accounts from within family portal |
+| COPPA | **Not triggered** - parents enter all student data, not children (see COPPA section below) |
 
 ### User Model
 | Decision | Value |
 |----------|-------|
 | Roles | admin, parent/adult, student |
+| Signup | Adults only - students cannot self-register |
+| Student Accounts | Created by parents within family portal (username/password or email invite) |
 | Multi-Family | Yes - families can join organizations (co-ops) |
 | Data Ownership | **Family-first with org overlay** - logs always belong to family |
 | Org Exit | Clone/snapshot data to family when leaving org (both keep copies) |
@@ -139,6 +142,56 @@ When an org admin logs hours for students from multiple families:
 - Master key stored in environment variable (not in DB)
 - Enables data portability (family can decrypt their own data on export)
 
+### COPPA & FERPA Analysis (Updated Dec 6, 2025)
+
+#### COPPA (Children's Online Privacy Protection Act)
+
+**Status: Not Triggered** ✅
+
+Our parent-controlled model avoids COPPA requirements:
+
+| Scenario | COPPA Status | Reason |
+|----------|--------------|--------|
+| Parent signs up | ✅ Not triggered | Adult providing own info |
+| Parent adds student info | ✅ Not triggered | Per FTC FAQ A.8: "COPPA only applies to info collected **from children**" |
+| Parent creates student login | ✅ Not triggered | Parent is the one creating the account |
+| Student logs in (read-only) | ⚠️ Minimal risk | Only persistent identifiers - "internal operations" exception |
+| Student logs in and enters data | ✅ Covered | Parent already consented by creating the account |
+
+**Key Implementation Points**:
+1. **Adults-only public signup** - No direct child registration
+2. **Parent creates student accounts** - From within authenticated family portal
+3. **Parent enters all student PII** - Name, DOB (optional), grade level
+4. **No age-gating at signup** - Only adults can sign up
+5. **DateOfBirth is optional** - Parent's choice to track, not legal requirement
+
+**Student Account Creation Flow**:
+```
+Parent (logged in) → Family Portal → Students → Create Student Login
+  ├── Option A: Set username + password directly
+  └── Option B: Send email invite to student's email address
+```
+
+**Still Required**:
+- Clear privacy policy explaining data practices
+- Statement that parents control all student accounts  
+- Data retention and deletion policies
+- Standard security practices (encryption, access control)
+
+#### FERPA (Family Educational Rights and Privacy Act)
+
+**Status: Not Applicable** ✅
+
+FERPA applies to **educational agencies receiving federal funds**:
+- We're a private app used by families directly
+- No federal funding or school contracts
+- FERPA would only apply if schools/co-ops contract with us AND receive federal funds
+
+**If supporting school/co-op integrations later**:
+- May need Data Processing Agreement (DPA) templates
+- Schools would be "school officials" under FERPA
+- Research state student privacy laws (SOPIPA, etc.)
+
 ---
 
 ## 📊 Current State Assessment
@@ -204,28 +257,77 @@ When an org admin logs hours for students from multiple families:
   - Organize `mobile/test/` structure
   - Create mock providers for testing
 
-### 1.2 Auth Package
+### 1.2 Crypto Package (Foundation for PII Protection)
+**Location**: `backend/crypto/`  
+**Purpose**: Application-level field encryption for PII (free, no enterprise deps)
+
+- [ ] **1.2.1** Create `backend/crypto/crypto.go`
+  ```go
+  package crypto
+  
+  // DeriveKey creates a per-family key from master key + familyId
+  // Uses SHA-256 to derive AES-256 key (32 bytes)
+  func DeriveKey(masterKey string, familyID string) []byte
+  
+  // Encrypt encrypts plaintext using AES-256-GCM
+  // Returns base64-encoded ciphertext (includes nonce)
+  func Encrypt(plaintext string, key []byte) (string, error)
+  
+  // Decrypt decrypts base64 ciphertext using AES-256-GCM
+  func Decrypt(ciphertext string, key []byte) (string, error)
+  ```
+  - Uses Go standard library only (`crypto/aes`, `crypto/cipher`, `crypto/sha256`)
+  - AES-256-GCM for authenticated encryption
+  - Per-family key derivation (SHA256 of masterKey + familyId)
+  - **Tests**: Encrypt/decrypt roundtrip, wrong key fails, empty string handling
+
+- [ ] **1.2.2** Create `backend/crypto/fields.go`
+  ```go
+  // EncryptField encrypts a field value for storage
+  // Returns empty string if input is empty (nil-safe)
+  func EncryptField(value string, masterKey string, familyID string) (string, error)
+  
+  // DecryptField decrypts a stored field value
+  // Returns empty string if input is empty (nil-safe)  
+  func DecryptField(ciphertext string, masterKey string, familyID string) (string, error)
+  
+  // EncryptTime encrypts a time.Time for storage (RFC3339 format)
+  func EncryptTime(t *time.Time, masterKey string, familyID string) (string, error)
+  
+  // DecryptTime decrypts a stored time string back to time.Time
+  func DecryptTime(ciphertext string, masterKey string, familyID string) (*time.Time, error)
+  ```
+  - Helper functions for common field types
+  - Nil-safe (handles empty/nil gracefully)
+  - **Tests**: Time roundtrip, nil handling, invalid ciphertext
+
+- [ ] **1.2.3** Add `ENCRYPTION_MASTER_KEY` to config
+  - Add to `backend/config/env.go`
+  - Document in `.env.example`
+  - Minimum 32 characters, validated at startup
+
+### 1.3 Auth Package
 **Location**: `backend/auth/`  
 **Pattern**: Follow ForKirk `backend/auth/auth.go`
 
-- [ ] **1.2.1** Create `backend/auth/auth.go`
+- [ ] **1.3.1** Create `backend/auth/auth.go`
   - Session management with `gorilla/securecookie`
   - Cookie-based session (30-day expiry)
   - `InitSession(secret string)`, `SetUser()`, `GetUser()`, `ClearSession()`
   - **Tests**: Session encoding/decoding, expiry
 
-- [ ] **1.2.2** Create `backend/auth/password.go`
+- [ ] **1.3.2** Create `backend/auth/password.go`
   - `HashPassword(password string)` - bcrypt cost 12
   - `CheckPassword(hash, password string)` - timing-safe comparison
   - **Tests**: Hash/check roundtrip, invalid password rejection
 
-- [ ] **1.2.3** Create `backend/auth/middleware.go`
+- [ ] **1.3.3** Create `backend/auth/middleware.go`
   - `RequireAuth` middleware that checks session
   - `OptionalAuth` middleware for public routes
   - Extract user from context with `GetUserFromContext(ctx)`
   - **Tests**: Middleware with/without valid session
 
-- [ ] **1.2.4** Create `backend/auth/handlers.go`
+- [ ] **1.3.4** Create `backend/auth/handlers.go`
   - `POST /api/v1/auth/register` - email/password registration
     - Creates user + family in one transaction
     - Seeds default subjects based on onboarding selections
@@ -234,11 +336,11 @@ When an org admin logs hours for students from multiple families:
   - `GET /api/v1/auth/me` - current user info
   - **Tests**: Register flow, login flow, session validation
 
-### 1.3 Models Package
+### 1.4 Models Package
 **Location**: `backend/models/`  
 **Pattern**: Follow ForKirk `backend/quotes/models.go` (bson + json tags)
 
-- [ ] **1.3.1** Create `backend/models/user.go`
+- [ ] **1.4.1** Create `backend/models/user.go`
   ```go
   type User struct {
       ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -252,7 +354,7 @@ When an org admin logs hours for students from multiple families:
   }
   ```
 
-- [ ] **1.3.2** Create `backend/models/family.go`
+- [ ] **1.4.2** Create `backend/models/family.go`
   ```go
   // Family is the core unit - every user, student, and log belongs to a family
   // In Phase 1A, Family = Organization (1:1), but schema supports multi-family orgs
@@ -276,7 +378,7 @@ When an org admin logs hours for students from multiple families:
   }
   ```
 
-- [ ] **1.3.3** Create `backend/models/organization.go` (for Phase 1B co-op support)
+- [ ] **1.4.3** Create `backend/models/organization.go` (for Phase 1B co-op support)
   ```go
   // Organization represents a co-op or group of families
   // Phase 1A: Not used, but schema ready
@@ -289,18 +391,23 @@ When an org admin logs hours for students from multiple families:
   }
   ```
 
-- [ ] **1.3.4** Create `backend/models/student.go`
+- [ ] **1.4.4** Create `backend/models/student.go`
   ```go
   type Student struct {
-      ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-      FamilyID    primitive.ObjectID `bson:"familyId" json:"familyId"`
-      Name        string             `bson:"name" json:"name"`
-      DateOfBirth *time.Time         `bson:"dateOfBirth,omitempty" json:"dateOfBirth,omitempty"` // optional, encrypted
-      GradeLevel  string             `bson:"gradeLevel" json:"gradeLevel"`
-      Active      bool               `bson:"active" json:"active"`
-      CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
-      UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
+      ID             primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
+      FamilyID       primitive.ObjectID  `bson:"familyId" json:"familyId"`
+      Name           string              `bson:"name" json:"name"`
+      DateOfBirthEnc string              `bson:"dateOfBirthEnc,omitempty" json:"-"`      // Encrypted, never sent to client
+      DateOfBirth    *time.Time          `bson:"-" json:"dateOfBirth,omitempty"`         // Decrypted in app, optional
+      GradeLevel     string              `bson:"gradeLevel" json:"gradeLevel"`
+      UserID         *primitive.ObjectID `bson:"userId,omitempty" json:"userId,omitempty"` // nil = no login, set when parent creates student account
+      Active         bool                `bson:"active" json:"active"`
+      CreatedAt      time.Time           `bson:"createdAt" json:"createdAt"`
+      UpdatedAt      time.Time           `bson:"updatedAt" json:"updatedAt"`
   }
+  // Note: DateOfBirth is OPTIONAL - parent's choice to track
+  // COPPA not triggered because parents enter all student info
+  // UserID links to User record when parent creates student login
   ```
 
 - [ ] **1.3.5** Create `backend/models/subject.go`

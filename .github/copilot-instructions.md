@@ -224,9 +224,21 @@ func (r *Repo) GetLog(ctx context.Context, familyID, logID primitive.ObjectID) (
 - Disk encryption on server
 - Per-family encryption keys
 
-### COPPA Compliance
-- Students under 13 require verifiable parental consent
-- Implement full COPPA flow before enabling student logins
+### COPPA & Privacy (Updated Dec 6, 2025)
+
+**COPPA Status: Not Triggered** ✅
+
+Our parent-controlled model avoids COPPA requirements:
+- **Adults-only signup** - Only parents/adults can create accounts
+- **Parents enter all student data** - Per FTC FAQ A.8: COPPA only applies to info collected "from children"
+- **Parents create student accounts** - From within authenticated family portal
+- **DateOfBirth is optional** - Parent's choice to track, not a legal requirement
+
+**What this means for development**:
+- No age-gating at signup
+- No verifiable parental consent flow needed
+- No COPPA-specific data handling requirements
+- Still need clear privacy policy and standard security practices
 
 ---
 
