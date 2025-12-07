@@ -1,8 +1,71 @@
-# Homeschool Keeper - Implementation Plan
+# Home School Logs - Implementation Plan
 
+**App Name**: Home School Logs  
+**Domain**: hmslogs.com  
+**Database**: hmslogs (MongoDB)  
 **Generated**: December 6, 2025  
-**Status**: Scaffolding Complete → Phase 1 Implementation  
+**Last Updated**: December 6, 2025  
+**Status**: Planning → Phase 1A Implementation  
 **Reference Project**: [ForKirk](C:\Users\cpuch\Documents\code\stuffleberry\forkirk)
+
+---
+
+## 📋 Confirmed Decisions (from Q&A)
+
+### Authentication
+| Decision | Value |
+|----------|-------|
+| Web Auth | Email/Password with cookie sessions (Google OAuth later) |
+| Mobile Auth | JWT tokens |
+| Session Duration | 30 days |
+
+### User Model
+| Decision | Value |
+|----------|-------|
+| Roles | admin, parent/adult, student |
+| Multi-Family | Yes - families can join organizations (co-ops) |
+| Data Ownership | Family-first - logs belong to family, optionally shared with org |
+
+### Hour Logging
+| Decision | Value |
+|----------|-------|
+| Default Increment | 0.25 hours (15 minutes), configurable per org |
+| Log Status | Auto-approved by default, configurable per org |
+| Locations | Managed collection per family/org, quick-add on the fly |
+
+### Subjects & School Year
+| Decision | Value |
+|----------|-------|
+| Default Subjects | Ask during onboarding (Missouri defaults as starting point) |
+| Target Hours | Optional per-subject targets, configurable per org/family |
+| School Year | Fully configurable per organization |
+| Multi-Year | Full history with year switching, archivable |
+
+### UI/Branding
+| Decision | Value |
+|----------|-------|
+| App Name | Home School Logs |
+| Theme | Blue/teal, elegant and simple |
+| Domain | hmslogs.com (root) |
+
+### Mobile
+| Decision | Value |
+|----------|-------|
+| Platforms | Both Android & iOS (iOS CI disabled until Mac available) |
+| Offline | Basic offline with sync when online (full offline later) |
+
+### Quality
+| Decision | Value |
+|----------|-------|
+| Testing | Testing-first approach |
+| Stack | Go testing + testify, Vitest + Vue Test Utils, Playwright E2E, Flutter test |
+| Privacy | Encrypt sensitive data, strict data isolation between orgs/families |
+
+### Timeline
+| Decision | Value |
+|----------|-------|
+| Pace | No rush - do it right |
+| Priority | Auth → Students → Subjects → Logs → Stats → Dashboard → Mobile |
 
 ---
 
@@ -15,7 +78,7 @@
 | CI/CD Pipeline | ✅ | GitHub Actions → GHCR → Dokploy |
 | Backend Go skeleton | ✅ | Compiles, health endpoint works |
 | Vue 3 SPA | ✅ | Builds, routes, static UI shells |
-| Flutter app | ✅ | Builds for Windows/Android/iOS |
+| Flutter app | ✅ | Builds for Windows/Android |
 | SSH tunnel scripts | ✅ | MongoDB access via Dokploy |
 | Planning docs | ✅ | 12 comprehensive documents |
 
@@ -23,394 +86,504 @@
 | Component | Issue |
 |-----------|-------|
 | Backend API endpoints | Only `/api/health` - all CRUD is TODO stubs |
-| Authentication | No login/register/JWT - just comments |
+| Authentication | No login/register - just comments |
 | Frontend data binding | Static mockups, no API calls |
 | Mobile data layer | No API client, no local DB |
+| Tests | No tests exist yet |
 
 ---
 
 ## 🏗️ Implementation Phases
 
-Following ForKirk patterns: feature-based packages under `/backend/`, models with bson/json tags, OAuth + cookie sessions.
+### Phase 1A: MVP Core (Current Focus)
+
+**Goal**: Working web app with auth, students, subjects, logs, and basic stats.
+
+**Scope Decisions**:
+- Single family model for simplicity (schema ready for multi-family)
+- Email/password auth only (Google OAuth in Phase 2)
+- Web only (mobile in Phase 1B)
+- Basic locations (home, field_trip, co_op, online, other)
+- Missouri defaults for subjects during onboarding
 
 ---
 
-## Phase 1: Backend Core API (Priority: CRITICAL)
+## Phase 1A Tasks
 
-### 1.1 Auth Package
+### 1.1 Testing Infrastructure (Do First!)
+**Rationale**: Testing-first approach as requested
+
+- [ ] **1.1.1** Set up Go test structure
+  - `backend/*_test.go` files
+  - Add `testify` to go.mod
+  - Create test MongoDB container helper
+
+- [ ] **1.1.2** Set up Vue/Vitest
+  - Configure vitest in `backend/frontend/`
+  - Add vue-test-utils
+  - Create test utilities for stores/components
+
+- [ ] **1.1.3** Set up Playwright E2E
+  - Install playwright in `backend/frontend/`
+  - Create basic E2E test structure
+  - Add E2E to CI pipeline (optional for Phase 1A)
+
+- [ ] **1.1.4** Set up Flutter tests
+  - Organize `mobile/test/` structure
+  - Create mock providers for testing
+
+### 1.2 Auth Package
 **Location**: `backend/auth/`  
 **Pattern**: Follow ForKirk `backend/auth/auth.go`
 
-- [ ] **1.1.1** Create `backend/auth/auth.go`
+- [ ] **1.2.1** Create `backend/auth/auth.go`
   - Session management with `gorilla/securecookie`
-  - Cookie-based session (not JWT for web, keep simple like ForKirk)
+  - Cookie-based session (30-day expiry)
   - `InitSession(secret string)`, `SetUser()`, `GetUser()`, `ClearSession()`
-  
-- [ ] **1.1.2** Create `backend/auth/middleware.go`
+  - **Tests**: Session encoding/decoding, expiry
+
+- [ ] **1.2.2** Create `backend/auth/password.go`
+  - `HashPassword(password string)` - bcrypt cost 12
+  - `CheckPassword(hash, password string)` - timing-safe comparison
+  - **Tests**: Hash/check roundtrip, invalid password rejection
+
+- [ ] **1.2.3** Create `backend/auth/middleware.go`
   - `RequireAuth` middleware that checks session
   - `OptionalAuth` middleware for public routes
-  - Extract user from context
+  - Extract user from context with `GetUserFromContext(ctx)`
+  - **Tests**: Middleware with/without valid session
 
-- [ ] **1.1.3** Create `backend/auth/handlers.go`
+- [ ] **1.2.4** Create `backend/auth/handlers.go`
   - `POST /api/v1/auth/register` - email/password registration
+    - Creates user + family in one transaction
+    - Seeds default subjects based on onboarding selections
   - `POST /api/v1/auth/login` - email/password login
   - `POST /api/v1/auth/logout` - clear session
   - `GET /api/v1/auth/me` - current user info
-  - Password hashing with bcrypt
+  - **Tests**: Register flow, login flow, session validation
 
-### 1.2 Models Package
+### 1.3 Models Package
 **Location**: `backend/models/`  
 **Pattern**: Follow ForKirk `backend/quotes/models.go` (bson + json tags)
 
-- [ ] **1.2.1** Create `backend/models/user.go`
+- [ ] **1.3.1** Create `backend/models/user.go`
   ```go
   type User struct {
       ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
       Email          string             `bson:"email" json:"email"`
       PasswordHash   string             `bson:"passwordHash" json:"-"`
       Name           string             `bson:"name" json:"name"`
-      OrganizationID primitive.ObjectID `bson:"organizationId" json:"organizationId"`
+      FamilyID       primitive.ObjectID `bson:"familyId" json:"familyId"`
       Role           string             `bson:"role" json:"role"` // admin, parent, student
       CreatedAt      time.Time          `bson:"createdAt" json:"createdAt"`
       UpdatedAt      time.Time          `bson:"updatedAt" json:"updatedAt"`
   }
   ```
 
-- [ ] **1.2.2** Create `backend/models/organization.go`
+- [ ] **1.3.2** Create `backend/models/family.go`
   ```go
-  type Organization struct {
-      ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-      Name            string             `bson:"name" json:"name"`
-      HourIncrement   float64            `bson:"hourIncrement" json:"hourIncrement"` // 0.25, 0.5, 1.0
-      SchoolYearStart time.Time          `bson:"schoolYearStart" json:"schoolYearStart"`
-      SchoolYearEnd   time.Time          `bson:"schoolYearEnd" json:"schoolYearEnd"`
-      State           string             `bson:"state" json:"state"` // MO, etc.
-      Timezone        string             `bson:"timezone" json:"timezone"`
-      CreatedAt       time.Time          `bson:"createdAt" json:"createdAt"`
+  // Family is the core unit - every user, student, and log belongs to a family
+  // In Phase 1A, Family = Organization (1:1), but schema supports multi-family orgs
+  type Family struct {
+      ID              primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
+      Name            string              `bson:"name" json:"name"`
+      OrganizationID  *primitive.ObjectID `bson:"organizationId,omitempty" json:"organizationId,omitempty"` // nil = standalone family
+      HourIncrement   float64             `bson:"hourIncrement" json:"hourIncrement"` // 0.25 default
+      SchoolYearStart time.Time           `bson:"schoolYearStart" json:"schoolYearStart"`
+      SchoolYearEnd   time.Time           `bson:"schoolYearEnd" json:"schoolYearEnd"`
+      State           string              `bson:"state" json:"state"` // MO, etc.
+      Timezone        string              `bson:"timezone" json:"timezone"`
+      Settings        FamilySettings      `bson:"settings" json:"settings"`
+      CreatedAt       time.Time           `bson:"createdAt" json:"createdAt"`
+      UpdatedAt       time.Time           `bson:"updatedAt" json:"updatedAt"`
+  }
+
+  type FamilySettings struct {
+      AutoApproveLogs     bool `bson:"autoApproveLogs" json:"autoApproveLogs"`         // default: true
+      RequireSubjectGoals bool `bson:"requireSubjectGoals" json:"requireSubjectGoals"` // default: false
   }
   ```
 
-- [ ] **1.2.3** Create `backend/models/student.go`
+- [ ] **1.3.3** Create `backend/models/organization.go` (for Phase 1B co-op support)
+  ```go
+  // Organization represents a co-op or group of families
+  // Phase 1A: Not used, but schema ready
+  type Organization struct {
+      ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+      Name        string             `bson:"name" json:"name"`
+      Description string             `bson:"description" json:"description"`
+      CreatedBy   primitive.ObjectID `bson:"createdBy" json:"createdBy"`
+      CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
+  }
+  ```
+
+- [ ] **1.3.4** Create `backend/models/student.go`
   ```go
   type Student struct {
-      ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-      OrganizationID primitive.ObjectID `bson:"organizationId" json:"organizationId"`
-      Name           string             `bson:"name" json:"name"`
-      DateOfBirth    time.Time          `bson:"dateOfBirth" json:"dateOfBirth"`
-      GradeLevel     string             `bson:"gradeLevel" json:"gradeLevel"`
-      Active         bool               `bson:"active" json:"active"`
-      CreatedAt      time.Time          `bson:"createdAt" json:"createdAt"`
-      UpdatedAt      time.Time          `bson:"updatedAt" json:"updatedAt"`
+      ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+      FamilyID    primitive.ObjectID `bson:"familyId" json:"familyId"`
+      Name        string             `bson:"name" json:"name"`
+      DateOfBirth *time.Time         `bson:"dateOfBirth,omitempty" json:"dateOfBirth,omitempty"` // optional, encrypted
+      GradeLevel  string             `bson:"gradeLevel" json:"gradeLevel"`
+      Active      bool               `bson:"active" json:"active"`
+      CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
+      UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
   }
   ```
 
-- [ ] **1.2.4** Create `backend/models/subject.go`
+- [ ] **1.3.5** Create `backend/models/subject.go`
   ```go
   type Subject struct {
-      ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-      OrganizationID primitive.ObjectID `bson:"organizationId" json:"organizationId"`
-      Name           string             `bson:"name" json:"name"`
-      Type           string             `bson:"type" json:"type"` // core, elective
-      TargetHours    float64            `bson:"targetHours" json:"targetHours"`
-      Color          string             `bson:"color" json:"color"`
-      IsDefault      bool               `bson:"isDefault" json:"isDefault"`
-      Active         bool               `bson:"active" json:"active"`
-      CreatedAt      time.Time          `bson:"createdAt" json:"createdAt"`
+      ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+      FamilyID    primitive.ObjectID `bson:"familyId" json:"familyId"`
+      Name        string             `bson:"name" json:"name"`
+      Type        string             `bson:"type" json:"type"` // core, elective
+      TargetHours *float64           `bson:"targetHours,omitempty" json:"targetHours,omitempty"` // optional
+      Color       string             `bson:"color" json:"color"`
+      IsDefault   bool               `bson:"isDefault" json:"isDefault"`
+      Active      bool               `bson:"active" json:"active"`
+      CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
   }
   ```
 
-- [ ] **1.2.5** Create `backend/models/log_entry.go`
+- [ ] **1.3.6** Create `backend/models/log_entry.go`
   ```go
   type LogEntry struct {
-      ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-      OrganizationID primitive.ObjectID `bson:"organizationId" json:"organizationId"`
-      StudentID      primitive.ObjectID `bson:"studentId" json:"studentId"`
-      SubjectID      primitive.ObjectID `bson:"subjectId" json:"subjectId"`
-      Date           time.Time          `bson:"date" json:"date"`
-      Hours          float64            `bson:"hours" json:"hours"`
-      Description    string             `bson:"description" json:"description"`
-      Location       string             `bson:"location" json:"location"` // home, field_trip, co_op
-      SubmittedBy    primitive.ObjectID `bson:"submittedBy" json:"submittedBy"`
-      Status         string             `bson:"status" json:"status"` // approved, pending
-      CreatedAt      time.Time          `bson:"createdAt" json:"createdAt"`
-      UpdatedAt      time.Time          `bson:"updatedAt" json:"updatedAt"`
+      ID             primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
+      FamilyID       primitive.ObjectID  `bson:"familyId" json:"familyId"`           // always set
+      OrganizationID *primitive.ObjectID `bson:"organizationId,omitempty" json:"organizationId,omitempty"` // for co-op activities
+      StudentID      primitive.ObjectID  `bson:"studentId" json:"studentId"`
+      SubjectID      primitive.ObjectID  `bson:"subjectId" json:"subjectId"`
+      Date           time.Time           `bson:"date" json:"date"`
+      Hours          float64             `bson:"hours" json:"hours"`
+      Description    string              `bson:"description" json:"description"`
+      LocationType   string              `bson:"locationType" json:"locationType"` // home, field_trip, co_op, online, other
+      LocationName   string              `bson:"locationName,omitempty" json:"locationName,omitempty"` // e.g., "Science Museum"
+      SubmittedBy    primitive.ObjectID  `bson:"submittedBy" json:"submittedBy"`
+      Status         string              `bson:"status" json:"status"` // approved, pending
+      SchoolYear     string              `bson:"schoolYear" json:"schoolYear"` // "2024-2025"
+      CreatedAt      time.Time           `bson:"createdAt" json:"createdAt"`
+      UpdatedAt      time.Time           `bson:"updatedAt" json:"updatedAt"`
   }
   ```
 
-### 1.3 Repository Package
+- [ ] **1.3.7** Create `backend/models/location.go` (for location management)
+  ```go
+  // Location represents a saved location for quick selection
+  type Location struct {
+      ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+      FamilyID  primitive.ObjectID `bson:"familyId" json:"familyId"`
+      Type      string             `bson:"type" json:"type"` // field_trip, co_op, other
+      Name      string             `bson:"name" json:"name"` // "Science Museum"
+      Address   string             `bson:"address,omitempty" json:"address,omitempty"`
+      CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
+  }
+  ```
+
+### 1.4 Repository Package
 **Location**: `backend/repository/`  
 **Pattern**: Follow ForKirk `backend/quotes/store.go`
 
-- [ ] **1.3.1** Create `backend/repository/users.go`
-  - `CreateUser(ctx, user)` - with password hashing
+- [ ] **1.4.1** Create `backend/repository/repository.go`
+  - Common interface and MongoDB collection helpers
+  - Context timeout wrappers
+  - **Tests**: Collection access, context handling
+
+- [ ] **1.4.2** Create `backend/repository/users.go`
+  - `CreateUser(ctx, user)` - with email uniqueness check
   - `GetUserByEmail(ctx, email)` - for login
   - `GetUserByID(ctx, id)` - for session
   - `UpdateUser(ctx, id, update)`
+  - **Tests**: CRUD operations, duplicate email handling
 
-- [ ] **1.3.2** Create `backend/repository/organizations.go`
-  - `CreateOrganization(ctx, org)`
-  - `GetOrganizationByID(ctx, id)`
-  - `UpdateOrganization(ctx, id, update)`
+- [ ] **1.4.3** Create `backend/repository/families.go`
+  - `CreateFamily(ctx, family)`
+  - `GetFamilyByID(ctx, id)`
+  - `UpdateFamily(ctx, id, update)`
+  - `GetFamilyWithUsers(ctx, id)` - includes users for display
+  - **Tests**: CRUD, settings updates
 
-- [ ] **1.3.3** Create `backend/repository/students.go`
+- [ ] **1.4.4** Create `backend/repository/students.go`
   - `CreateStudent(ctx, student)`
-  - `GetStudentsByOrg(ctx, orgID)`
+  - `GetStudentsByFamily(ctx, familyID)`
   - `GetStudentByID(ctx, id)`
   - `UpdateStudent(ctx, id, update)`
-  - `DeleteStudent(ctx, id)` - soft delete
+  - `SoftDeleteStudent(ctx, id)` - sets active=false
+  - **Tests**: CRUD, soft delete, family isolation
 
-- [ ] **1.3.4** Create `backend/repository/subjects.go`
+- [ ] **1.4.5** Create `backend/repository/subjects.go`
   - `CreateSubject(ctx, subject)`
-  - `GetSubjectsByOrg(ctx, orgID)`
+  - `GetSubjectsByFamily(ctx, familyID)`
   - `UpdateSubject(ctx, id, update)`
-  - `SeedDefaultSubjects(ctx, orgID)` - Reading, Math, etc.
+  - `SeedDefaultSubjects(ctx, familyID, selectedSubjects)` - from onboarding
+  - **Tests**: CRUD, seeding
 
-- [ ] **1.3.5** Create `backend/repository/logs.go`
+- [ ] **1.4.6** Create `backend/repository/logs.go`
   - `CreateLogEntry(ctx, log)`
-  - `GetLogsByOrg(ctx, orgID, filters, pagination)`
+  - `GetLogsByFamily(ctx, familyID, filters, pagination)`
   - `GetLogsByStudent(ctx, studentID, dateRange)`
   - `UpdateLogEntry(ctx, id, update)`
   - `DeleteLogEntry(ctx, id)`
+  - **Tests**: CRUD, filtering, date range queries
 
-### 1.4 Handlers Package
+- [ ] **1.4.7** Create `backend/repository/stats.go`
+  - `GetStudentStats(ctx, studentID, schoolYear)` - aggregation
+  - `GetFamilyStats(ctx, familyID, schoolYear)` - all students
+  - **Tests**: Aggregation accuracy
+
+### 1.5 Handlers Package
 **Location**: `backend/handlers/`
 
-- [ ] **1.4.1** Create `backend/handlers/students.go`
+- [ ] **1.5.1** Create `backend/handlers/helpers.go`
+  - JSON response helpers
+  - Error response helpers
+  - Request parsing helpers
+  - **Tests**: Response formatting
+
+- [ ] **1.5.2** Create `backend/handlers/students.go`
   - `POST /api/v1/students` - create student
-  - `GET /api/v1/students` - list students
-  - `GET /api/v1/students/{id}` - get student
+  - `GET /api/v1/students` - list students in family
+  - `GET /api/v1/students/{id}` - get student with stats
   - `PATCH /api/v1/students/{id}` - update student
   - `DELETE /api/v1/students/{id}` - soft delete
+  - **Tests**: All endpoints with auth, validation
 
-- [ ] **1.4.2** Create `backend/handlers/subjects.go`
+- [ ] **1.5.3** Create `backend/handlers/subjects.go`
   - `POST /api/v1/subjects`
   - `GET /api/v1/subjects`
   - `PATCH /api/v1/subjects/{id}`
   - `DELETE /api/v1/subjects/{id}`
+  - **Tests**: All endpoints
 
-- [ ] **1.4.3** Create `backend/handlers/logs.go`
-  - `POST /api/v1/logs` - create log entry
-  - `GET /api/v1/logs` - list with filters (studentId, subjectId, date range)
+- [ ] **1.5.4** Create `backend/handlers/logs.go`
+  - `POST /api/v1/logs` - create log entry (quick log)
+  - `GET /api/v1/logs` - list with filters (studentId, subjectId, date range, schoolYear)
   - `GET /api/v1/logs/{id}` - single log
   - `PATCH /api/v1/logs/{id}` - update
   - `DELETE /api/v1/logs/{id}` - delete
+  - **Tests**: All endpoints, filtering, hour increment validation
 
-- [ ] **1.4.4** Create `backend/handlers/stats.go`
-  - `GET /api/v1/stats/student/{id}` - hours by subject, totals
-  - `GET /api/v1/stats/organization` - all students summary
+- [ ] **1.5.5** Create `backend/handlers/stats.go`
+  - `GET /api/v1/stats/student/{id}` - hours by subject, totals, progress
+  - `GET /api/v1/stats/family` - all students summary
+  - **Tests**: Stat calculations, school year boundaries
 
-### 1.5 Wire Up Main.go
-- [ ] **1.5.1** Register all routes in `main.go`
-- [ ] **1.5.2** Apply auth middleware to protected routes
-- [ ] **1.5.3** Add request validation
-- [ ] **1.5.4** Update health check with version info
+- [ ] **1.5.6** Create `backend/handlers/onboarding.go`
+  - `POST /api/v1/onboarding/complete` - finish onboarding with settings
+  - Seeds subjects, sets school year
+  - **Tests**: Full onboarding flow
+
+### 1.6 Wire Up Main.go
+- [ ] **1.6.1** Initialize auth session
+- [ ] **1.6.2** Register all routes with appropriate middleware
+- [ ] **1.6.3** Add request validation middleware
+- [ ] **1.6.4** Update health check with version and DB status
+- [ ] **1.6.5** Add graceful shutdown (already exists, verify)
 
 ---
 
-## Phase 2: Frontend API Integration
+## Phase 1A: Frontend Tasks
 
-### 2.1 API Client Layer
+### 1.7 API Client Layer
 **Location**: `backend/frontend/src/api/`
 
-- [ ] **2.1.1** Create `students.ts`
-  - `getAll()`, `getById(id)`, `create(data)`, `update(id, data)`, `remove(id)`
+- [ ] **1.7.1** Update `auth.ts` - connect to real endpoints
+- [ ] **1.7.2** Create `students.ts` - CRUD operations
+- [ ] **1.7.3** Create `subjects.ts` - CRUD operations
+- [ ] **1.7.4** Create `logs.ts` - CRUD with filters
+- [ ] **1.7.5** Create `stats.ts` - stats endpoints
+- [ ] **1.7.6** Create `onboarding.ts` - onboarding flow
 
-- [ ] **2.1.2** Create `subjects.ts`
-  - `getAll()`, `create(data)`, `update(id, data)`, `remove(id)`
-
-- [ ] **2.1.3** Create `logs.ts`
-  - `getAll(filters)`, `getById(id)`, `create(data)`, `update(id, data)`, `remove(id)`
-
-- [ ] **2.1.4** Create `stats.ts`
-  - `getStudentStats(id)`, `getOrgStats()`
-
-### 2.2 Pinia Stores
+### 1.8 Pinia Stores
 **Location**: `backend/frontend/src/stores/`
 
-- [ ] **2.2.1** Complete `auth.ts` store
-  - Connect to real login/register/logout endpoints
-  - Persist session properly
+- [ ] **1.8.1** Complete `auth.ts` - login/register/logout/session
+- [ ] **1.8.2** Create `family.ts` - family settings, school year
+- [ ] **1.8.3** Create `students.ts` - student list, CRUD
+- [ ] **1.8.4** Create `subjects.ts` - subject list, core/elective getters
+- [ ] **1.8.5** Create `logs.ts` - log list, filters, CRUD
+- [ ] **1.8.6** Create `stats.ts` - computed stats
 
-- [ ] **2.2.2** Create `students.ts` store
-  - State: students array, currentStudent
-  - Actions: fetchAll, create, update, delete
-
-- [ ] **2.2.3** Create `subjects.ts` store
-  - State: subjects, computed coreSubjects/electiveSubjects
-
-- [ ] **2.2.4** Create `logs.ts` store
-  - State: logs, filters, pagination
-  - Actions: fetchLogs with date range
-
-- [ ] **2.2.5** Create `stats.ts` store
-  - State: studentStats, orgStats
-
-### 2.3 Page Components
+### 1.9 Pages
 **Location**: `backend/frontend/src/pages/`
 
-- [ ] **2.3.1** Wire `LoginPage.vue` to auth store
-- [ ] **2.3.2** Wire `RegisterPage.vue` to auth store
-- [ ] **2.3.3** Wire `DashboardPage.vue` to stats store
-- [ ] **2.3.4** Wire `StudentsPage.vue` to students store
-- [ ] **2.3.5** Wire `SubjectsPage.vue` to subjects store
-- [ ] **2.3.6** Wire `LogsPage.vue` to logs store
-- [ ] **2.3.7** Implement `QuickLogPage.vue` form
+- [ ] **1.9.1** Wire `LoginPage.vue` - form validation, error handling
+- [ ] **1.9.2** Wire `RegisterPage.vue` - form validation, redirect to onboarding
+- [ ] **1.9.3** Create `OnboardingPage.vue` - school year, subjects, settings
+- [ ] **1.9.4** Wire `DashboardPage.vue` - real stats, progress bars
+- [ ] **1.9.5** Wire `StudentsPage.vue` - list, add/edit modals
+- [ ] **1.9.6** Wire `StudentDetailPage.vue` - student info, logs, stats
+- [ ] **1.9.7** Wire `SubjectsPage.vue` - list, add/edit modals
+- [ ] **1.9.8** Wire `LogsPage.vue` - filterable list, date range
+- [ ] **1.9.9** Wire `QuickLogPage.vue` - streamlined log entry form
+- [ ] **1.9.10** Wire `SettingsPage.vue` - family settings
 
-### 2.4 Common Components
+### 1.10 Components
 **Location**: `backend/frontend/src/components/`
 
-- [ ] **2.4.1** Create `components/common/` folder
-- [ ] **2.4.2** Create `BaseButton.vue`
-- [ ] **2.4.3** Create `BaseInput.vue`
-- [ ] **2.4.4** Create `BaseModal.vue`
-- [ ] **2.4.5** Create `HourPicker.vue` - increment-aware hour selector
+- [ ] **1.10.1** Create `components/common/` folder
+- [ ] **1.10.2** `BaseButton.vue` - primary, secondary, danger, loading
+- [ ] **1.10.3** `BaseInput.vue` - text, email, password with validation
+- [ ] **1.10.4** `BaseSelect.vue` - dropdown with options
+- [ ] **1.10.5** `BaseModal.vue` - dialog wrapper
+- [ ] **1.10.6** `HourPicker.vue` - increment-aware hour selector (0.25, 0.5, etc.)
+- [ ] **1.10.7** `ProgressBar.vue` - hours progress display
+- [ ] **1.10.8** `DateRangePicker.vue` - for filtering logs
+- [ ] **1.10.9** `StudentCard.vue` - dashboard student summary
+- [ ] **1.10.10** `LogEntryRow.vue` - log list item
 
 ---
 
-## Phase 3: Mobile App Integration
+## Phase 1B: Mobile & Polish (After 1A)
 
-### 3.1 API Client
-**Location**: `mobile/lib/core/api/`
+### Mobile App
+- [ ] JWT auth implementation
+- [ ] API client with Dio
+- [ ] Riverpod providers
+- [ ] All screens wired to real data
+- [ ] Basic offline with Hive cache
+- [ ] Sync on reconnect
 
-- [ ] **3.1.1** Create `api_client.dart` with Dio
-- [ ] **3.1.2** Create `auth_api.dart`
-- [ ] **3.1.3** Create `students_api.dart`
-- [ ] **3.1.4** Create `subjects_api.dart`
-- [ ] **3.1.5** Create `logs_api.dart`
-
-### 3.2 Data Models
-**Location**: `mobile/lib/models/`
-
-- [ ] **3.2.1** Create models with Freezed
-- [ ] **3.2.2** Run `flutter pub run build_runner build`
-
-### 3.3 Riverpod Providers
-**Location**: `mobile/lib/providers/`
-
-- [ ] **3.3.1** Create `auth_provider.dart`
-- [ ] **3.3.2** Create `students_provider.dart`
-- [ ] **3.3.3** Create `subjects_provider.dart`
-- [ ] **3.3.4** Create `logs_provider.dart`
-- [ ] **3.3.5** Create `stats_provider.dart`
-
-### 3.4 Feature Screens
-- [ ] **3.4.1** Wire all screens to providers
-- [ ] **3.4.2** Implement forms with validation
+### Web Polish
+- [ ] Location management CRUD
+- [ ] Multi-year switching
+- [ ] Archive school year
+- [ ] Proper family/org separation (if needed for co-op)
 
 ---
 
-## Phase 4: Advanced Features (Future)
+## Phase 2: Advanced Features (Future)
 
-### 4.1 File Attachments
-- [ ] File upload endpoint
-- [ ] File encryption at rest
-- [ ] Image thumbnails
-
-### 4.2 Export/Reports
-- [ ] PDF generation
-- [ ] Excel export
-- [ ] Compliance reports
-
-### 4.3 Multi-state Compliance
-- [ ] State requirement configurations
-- [ ] Flexible hour rules
-
-### 4.4 Student Portal
-- [ ] Student login with COPPA
-- [ ] Approval workflow
-
----
-
-## 🔧 Development Commands
-
-```powershell
-# Backend
-cd backend
-go run main.go
-
-# Frontend (dev mode)
-cd backend/frontend
-npm run dev
-
-# Frontend (build for embed)
-npm run build
-
-# Mobile
-cd mobile
-flutter run -d windows
-flutter run -d chrome
-
-# SSH tunnel to MongoDB
-.\scripts\ssh-mongo-start.ps1
-.\scripts\ssh-mongo-stop.ps1
-```
+- Google OAuth
+- File attachments (work samples)
+- PDF/Excel export
+- Multi-state compliance rules
+- Student accounts (COPPA compliance)
+- Approval workflow
+- Email notifications
+- Full offline mobile sync
 
 ---
 
 ## 📁 Target Directory Structure
 
-Following ForKirk patterns:
-
 ```
 homeschool-keeper/
 ├── backend/
 │   ├── auth/
-│   │   ├── auth.go          # Session management
-│   │   ├── handlers.go      # Login/register handlers
-│   │   └── middleware.go    # Auth middleware
-│   ├── config/
-│   │   └── env.go           # ✅ Already exists
-│   ├── db/
-│   │   └── mongo.go         # ✅ Already exists
-│   ├── handlers/
+│   │   ├── auth.go           # Session management
+│   │   ├── auth_test.go
+│   │   ├── password.go       # Bcrypt hashing
+│   │   ├── password_test.go
+│   │   ├── middleware.go     # Auth middleware
+│   │   ├── middleware_test.go
+│   │   ├── handlers.go       # Login/register endpoints
+│   │   └── handlers_test.go
+│   ├── models/
+│   │   ├── user.go
+│   │   ├── family.go
+│   │   ├── organization.go   # For Phase 1B
+│   │   ├── student.go
+│   │   ├── subject.go
+│   │   ├── log_entry.go
+│   │   └── location.go
+│   ├── repository/
+│   │   ├── repository.go     # Common helpers
+│   │   ├── users.go
+│   │   ├── users_test.go
+│   │   ├── families.go
 │   │   ├── students.go
 │   │   ├── subjects.go
 │   │   ├── logs.go
 │   │   └── stats.go
-│   ├── models/
-│   │   ├── user.go
-│   │   ├── organization.go
-│   │   ├── student.go
-│   │   ├── subject.go
-│   │   └── log_entry.go
-│   ├── repository/
-│   │   ├── users.go
-│   │   ├── organizations.go
+│   ├── handlers/
+│   │   ├── helpers.go
 │   │   ├── students.go
 │   │   ├── subjects.go
-│   │   └── logs.go
-│   ├── frontend/            # ✅ Vue app (embed)
-│   ├── main.go              # ✅ Entry point
-│   └── Dockerfile           # ✅ Multi-stage build
-├── mobile/                  # ✅ Flutter app
-├── scripts/                 # ✅ SSH tunnels
-├── docs/                    # ✅ Planning docs
-├── .github/workflows/       # ✅ CI/CD
-└── docker-compose.yml       # ✅ Local dev
+│   │   ├── logs.go
+│   │   ├── stats.go
+│   │   └── onboarding.go
+│   ├── config/
+│   │   └── env.go            # ✅ Exists
+│   ├── db/
+│   │   └── mongo.go          # ✅ Exists
+│   ├── frontend/             # Vue SPA
+│   │   ├── src/
+│   │   │   ├── api/
+│   │   │   ├── components/
+│   │   │   │   └── common/
+│   │   │   ├── pages/
+│   │   │   ├── stores/
+│   │   │   └── types/
+│   │   ├── e2e/              # Playwright tests
+│   │   └── vitest.config.ts
+│   ├── main.go               # ✅ Exists
+│   └── Dockerfile            # ✅ Exists
+├── mobile/                   # Flutter
+│   ├── lib/
+│   │   ├── core/
+│   │   │   └── api/          # Dio client
+│   │   ├── models/           # Freezed models
+│   │   ├── providers/        # Riverpod
+│   │   └── features/
+│   └── test/
+├── scripts/                  # ✅ SSH tunnels exist
+├── docs/                     # ✅ Planning docs
+├── .github/workflows/        # ✅ CI/CD
+├── .vscode/
+│   ├── copilot-instructions.md  # To create
+│   └── AGENTS.md                # To create
+├── HMS_LOGS_IMP.md           # This file
+├── Q_AND_A.md                # Q&A tracking
+└── docker-compose.yml        # ✅ Exists
 ```
 
 ---
 
-## ✅ Acceptance Criteria for Phase 1
+## ✅ Acceptance Criteria for Phase 1A
 
-1. User can register with email/password
-2. User can login and see their dashboard
-3. User can add/edit/remove students
-4. User can add/edit/remove subjects
-5. User can create log entries (quick log)
-6. User can see hour statistics on dashboard
-7. All data persists to MongoDB
-8. CI/CD deploys successfully to Dokploy
+1. ✅ User can register with email/password
+2. ✅ User completes onboarding (school year, subjects)
+3. ✅ User can login and see their dashboard
+4. ✅ User can add/edit/remove students
+5. ✅ User can add/edit/remove subjects
+6. ✅ User can create log entries (quick log)
+7. ✅ User can see hour statistics on dashboard
+8. ✅ All data persists to MongoDB
+9. ✅ All code has tests (80%+ coverage for business logic)
+10. ✅ CI/CD deploys successfully to Dokploy
+
+---
+
+## 🔒 Security Checklist
+
+- [ ] Passwords hashed with bcrypt (cost 12+)
+- [ ] Session cookies: HttpOnly, Secure, SameSite=Lax
+- [ ] All endpoints check family ownership (no cross-family data leaks)
+- [ ] Rate limiting on auth endpoints
+- [ ] Input validation on all endpoints
+- [ ] CORS configured for production domain only
+- [ ] Sensitive fields (DOB) encrypted at rest (Phase 1B)
+- [ ] MongoDB auth enabled in production
+- [ ] Environment variables for all secrets
 
 ---
 
 ## 📝 Notes
 
-- **Auth Strategy**: Using cookie sessions like ForKirk (simpler than JWT for web)
-- **Mobile Auth**: Will need token-based auth since mobile can't use cookies easily
-- **Hour Increment**: Must respect org setting (0.25, 0.5, 1.0 hours)
-- **School Year**: Configurable start/end dates for stats
-- **Missouri Default**: 1,000 total, 600 core, 400 at home
+- **Family-First Design**: Every entity (student, log, subject) belongs to a `familyId`. This makes data ownership clear and enables future co-op support.
+- **School Year Tracking**: Each log has a `schoolYear` field ("2024-2025") for easy filtering and multi-year support.
+- **Hour Increment**: Must validate log hours match family's increment setting (0.25, 0.5, 1.0).
+- **Missouri Defaults**: Reading, Math, Social Studies, Language Arts, Science as core subjects.
+
+---
+
+## 🚀 Next Steps
+
+1. **Answer remaining Q&A questions** (Q23-Q32)
+2. **Create copilot-instructions.md** in `.vscode/`
+3. **Create AGENTS.md** for specialized development prompts
+4. **Begin Phase 1A Task 1.1** (Testing Infrastructure)
 
 ---
 

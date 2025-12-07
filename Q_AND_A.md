@@ -359,6 +359,185 @@ I have time to wait for a solid implementation, so no rush.
 
 ---
 
+## 🤖 Follow-Up Questions (from Copilot)
+
+### Q23: Family/Org Data Model Strategy
+Based on your concerns about complexity, here's my recommendation. Please confirm:
+
+**Proposed Approach - "Family First with Org Overlay"**:
+1. **Family** is the core unit - every user belongs to a family, every student belongs to a family, every log belongs to a family
+2. **Organization** is optional - families can join orgs for co-op features (shared subjects, group activities)
+3. **Logs have dual ownership**: `familyId` (always) + `organizationId` (optional, for co-op logged activities)
+4. **When family leaves org**: Their data stays with them (familyId is primary), org just loses access to see it
+
+**Options**:
+- [x] A) Yes, implement "Family First" from the start (more work upfront, but cleaner)
+- [ ] B) Simplify Phase 1 to just `organizationId` = family, add proper families in Phase 2
+- [ ] C) Different approach: _______________
+
+**Your Answer**: 
+
+I like the family first with org overlay approach.
+
+---
+
+### Q24: Data Ownership on Org Exit
+When a family leaves an organization, what happens to:
+
+**Logs created during co-op activities (e.g., "Math class at co-op")**:
+- [ ] A) Family keeps a copy, org loses access entirely
+- [x] B) Both keep a copy (fork the data)
+- [ ] C) Family can choose: take copy or leave it with org
+- [ ] D) Other: _______________
+
+**Your Answer**: 
+
+I'm thinking about this from a co-op perspective. if a co-op has two familes, A and B and family A's admin teaches math and logs it for students A.01 and B.01. we should have a parent log entry for the org that allows the org to see that log, but two individual log entries for each student tied to their family. So if family B leaves the org, they still have their own log entry for student B.01, but the org and family A still have their own log entry for student A.01. So both keep a copy of the log entry, but tied to their own family/org. We then would need to clone a record in family B such that the log of A's admin having taught math for log entry to B's student when they log it for the org is properly saved and editable by family B after they leave the org. I think it amounts to anything in the org that is tied to a families logs or students needs to be cloned (snapshotted) over to the family when they leave the org, but in an editable way so they can manage it on their own, and that wont be affected by any changes in the org after they leave.
+
+Does that make sense? lets discuss more if needed.
+
+---
+
+### Q25: Testing Coverage Target
+You mentioned testing-first. What's the minimum coverage bar before we consider code "done"?
+
+**Options**:
+- [ ] A) 80%+ coverage for core business logic (auth, logs, stats)
+- [x] B) 60%+ overall, higher for critical paths
+- [ ] C) No hard number, but every public function needs tests
+- [ ] D) Other: _______________
+
+**Your Answer**: 
+
+I don't want to get over burdened with test coverage percentages, but I do want to make sure we have solid tests for all critical paths and business logic. So let's aim for 60%+ overall coverage, with a focus on critical paths like authentication, log management, and statistics calculations. We can always improve coverage over time as we add more features and refactor code. As well as when we have co-op features, we need to make sure those paths are well tested too. especially around log ownership and cloning when families leave orgs.
+
+---
+
+### Q26: Testing Stack Confirmation
+Confirming your preferred testing stack:
+
+| Layer | Tool | Confirm? |
+|-------|------|----------|
+| Go unit tests | Go `testing` package + `testify` | ✅ |
+| Go integration tests | `testcontainers-go` for MongoDB | ✅ |
+| Vue unit tests | Vitest + Vue Test Utils | ✅ |
+| Vue E2E tests | Playwright | ✅ |
+| Flutter unit tests | Flutter `test` package | ✅ |
+| Flutter integration | Flutter integration_test | ✅ |
+| API tests | Hurl or Bruno (REST client) | ✅ |
+
+**Your changes/preferences**: 
+
+all of those looks good, but I am really unfamiliar with hurl or bruno for api tests. I've dug into them a little and I think they seem fine. We should go with whichever one is easier to integrate into our ci/cd pipeline. Do you have a preference between the two? I assume one will let us write tests with a user logging in and getting a jwt token and using that for auth headers in later requests more easily than the other? If so let's go with that one.
+
+---
+
+### Q27: COPPA Compliance
+Since students may be under 13, COPPA (Children's Online Privacy Protection Act) applies. How do you want to handle this?
+
+**Options**:
+- [ ] A) Require parental consent before any student account creation
+- [ ] B) Students under 13 cannot have their own login (parent logs for them)
+- [x] C) Full COPPA flow with verifiable parental consent
+- [ ] D) Research this more before deciding
+
+**Your Answer**: 
+
+This will be a pain, but we should comply fully with the law. So let's implement a full COPPA flow with verifiable parental consent before allowing student account creation. We can research best practices and legal requirements to make sure we're doing this right.
+
+---
+
+### Q28: Encryption Scope
+You mentioned encrypting sensitive data. What specifically should be encrypted at rest?
+
+**Options** (check all that apply):
+- [ ] Passwords (already planned - bcrypt hash)
+- [ ] Student names
+- [ ] Student date of birth
+- [ ] Log descriptions/notes
+- [x] File attachments (work samples)
+- [x] All PII fields
+- [x] Everything in the database
+
+**Your Answer**: 
+
+I think if we can encrypt everything in the database at rest that would be best. We should use AES-256 encryption for all data at rest, and ensure that our encryption keys are securely managed. We should also make sure that any sensitive data transmitted over the network is done so using HTTPS/TLS to protect it in transit.
+
+---
+
+### Q29: Backup Strategy
+For MongoDB backups, what's your preference?
+
+**Options**:
+- [x] A) Daily backups, 30-day retention (standard)
+- [x] B) Hourly backups for last 24h, then daily for 30 days
+- [ ] C) Use MongoDB Atlas managed backups (if moving to Atlas)
+- [ ] D) Self-managed with mongodump to S3
+
+**Notes on current Dokploy setup**: 
+
+I really don't know what the best stratagy here is, though dokploy does have some options. lets investigate that and add to it anything we need to feel comfortable here.
+
+---
+
+### Q30: Phase 1 Scope - Your Final Call
+Given all we've discussed, here's my recommendation for Phase 1 scope. Please confirm or adjust:
+
+**Phase 1A (MVP - Get it Working)**:
+- [x] Email/password auth (web cookie sessions)
+- [x] Single family model (org = family, keep schema ready for multi-family)
+- [x] Students CRUD
+- [x] Subjects CRUD (with Missouri defaults during onboarding)
+- [x] Log entries CRUD (quick log)
+- [x] Basic stats (total hours, core vs elective)
+- [x] Dashboard with progress bars
+- [ ] Mobile app (defer to Phase 1B)
+
+**Phase 1B (Polish)**:
+- [x] Mobile app with JWT auth
+- [x] Proper family/org split
+- [x] Location management
+- [x] Multi-year support
+- [ ] Basic offline sync (defer full offline to Phase 2)
+
+**Your adjustments**:
+
+---
+
+### Q31: Copilot Instructions Scope
+You mentioned wanting a .github / copilot-instructions. What should they cover?
+
+**Suggested sections**:
+- [x] Simple project structure overview (where to put code/docs)
+- [x] Coding conventions (Go, Vue, Flutter)
+- [x] App architecture overview (backend, frontend, mobile, deployment infrastructure)
+- [x] Testing requirements
+- [ ] Data model relationships
+- [x] Security considerations
+- [ ] API design patterns
+- [ ] State compliance rules
+- [ ] Other: _______________
+
+**Your Answer**: 
+
+---
+
+### Q32: AGENTS.md Purpose
+What do you want the AGENTS.md file to help with?
+
+**Options**:
+- [x] A) Agent prompts for specific development tasks (backend, frontend, mobile)
+- [ ] B) Onboarding guide for new AI agents working on this codebase
+- [x] C) System prompts for specialized agents (testing agent, security agent, etc.)
+- [ ] D) All of the above
+- [x] E) Other: _______________
+
+**Your Answer**:
+
+For other, I want an agent that will help with writing customer facing documentation, one that will help me research the various states homeschooling laws and requirements, and one that will help me with marketing copy and ideas for promoting the app once it's ready to launch.
+
+---
+
 ## 📝 Additional Notes
 
 *Any other context, preferences, or requirements I should know:*
