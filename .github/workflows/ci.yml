@@ -83,17 +83,42 @@ jobs:
       run: |
         cd backend
         chmod +x ./homeschool-keeper
-        ./homeschool-keeper &
+        
+        # Start server and capture logs
+        ./homeschool-keeper > server.log 2>&1 &
         SERVER_PID=$!
+        echo "Started server with PID: $SERVER_PID"
         
-        # Wait for server to start
-        sleep 5
+        # Wait for server to be ready with retry loop
+        MAX_ATTEMPTS=30
+        ATTEMPT=0
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+          echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if server is ready..."
+          if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+            echo "Server is ready!"
+            break
+          fi
+          sleep 1
+        done
         
-        # Test health endpoint
-        curl -f http://localhost:8080/api/health
+        # Show server logs for debugging
+        echo "=== Server logs ==="
+        cat server.log || true
+        echo "==================="
+        
+        # Check if server process is still running
+        if ! ps -p $SERVER_PID > /dev/null 2>&1; then
+          echo "ERROR: Server process died!"
+          exit 1
+        fi
+        
+        # Final health check with verbose output
+        echo "Running health check..."
+        curl -v http://localhost:8080/api/health
         
         # Stop the server
-        kill $SERVER_PID
+        kill $SERVER_PID 2>/dev/null || true
 
   build-and-push:
     runs-on: ubuntu-latest
