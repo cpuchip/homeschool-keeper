@@ -14,8 +14,12 @@ docker:
 # Environment Variables (set in dokploy dashboard, not here)
 environment:
   - PORT=8080
-  # MONGODB_URI - set in dashboard (secret)
-  # JWT_SECRET - set in dashboard (secret)
+  # Required secrets - MUST be set in Dokploy dashboard:
+  # SESSION_SECRET - min 32 chars, for cookie encryption (REQUIRED)
+  # ENCRYPTION_MASTER_KEY - min 32 chars, for PII field encryption (REQUIRED)
+  # MONGODB_URI - full MongoDB connection string (REQUIRED)
+  # JWT_SECRET - for mobile app auth (optional until mobile is live)
+  # DEV_MODE - set to "false" for production
 
 # Health Check
 health_check:

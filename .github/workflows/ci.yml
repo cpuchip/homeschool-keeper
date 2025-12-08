@@ -75,6 +75,11 @@ jobs:
         go build -v -o homeschool-keeper .
 
     - name: Test API endpoints
+      env:
+        SESSION_SECRET: test-session-secret-for-ci-only
+        ENCRYPTION_MASTER_KEY: test-encryption-key-32chars123
+        JWT_SECRET: test-jwt-secret-for-ci
+        DEV_MODE: "true"
       run: |
         cd backend
         chmod +x ./homeschool-keeper
