@@ -109,6 +109,13 @@ async function changePassword() {
   }
 }
 
+// Helper function to extract YYYY-MM-DD from ISO date string
+function formatDateForInput(isoDate: string): string {
+  if (!isoDate) return ''
+  // Handle both ISO format "2025-08-01T00:00:00Z" and simple "2025-08-01"
+  return isoDate.split('T')[0]
+}
+
 onMounted(() => {
   // Load current settings
   if (user.value) {
@@ -118,8 +125,8 @@ onMounted(() => {
   
   if (family.value) {
     hourIncrement.value = family.value.hourIncrement ?? 0.25
-    schoolYearStart.value = family.value.schoolYearStart ?? ''
-    schoolYearEnd.value = family.value.schoolYearEnd ?? ''
+    schoolYearStart.value = formatDateForInput(family.value.schoolYearStart)
+    schoolYearEnd.value = formatDateForInput(family.value.schoolYearEnd)
     timezone.value = family.value.timezone ?? 'America/Chicago'
   }
 })

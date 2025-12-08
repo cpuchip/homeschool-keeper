@@ -26,11 +26,13 @@ export interface Family {
   name: string
   organizationId?: string // optional, for co-ops
   hourIncrement: number // 0.25, 0.5, 1.0
-  schoolYearStart: string
-  schoolYearEnd: string
+  schoolYearStart: string // ISO date string from backend
+  schoolYearEnd: string // ISO date string from backend
+  currentYear: string // e.g., "2024-2025"
   state: string // e.g., 'MO'
   timezone: string
   settings: FamilySettings
+  onboardingDone: boolean
   createdAt: string
   updatedAt: string
 }

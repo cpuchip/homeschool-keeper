@@ -15,9 +15,19 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value)
   const currentSchoolYear = computed(() => {
     if (!family.value) return ''
-    const start = new Date(family.value.schoolYearStart)
-    const end = new Date(family.value.schoolYearEnd)
-    return `${start.getFullYear()}-${end.getFullYear()}`
+    // Use the currentYear field from the backend if available
+    if (family.value.currentYear) {
+      return family.value.currentYear
+    }
+    // Fallback: calculate from dates
+    if (family.value.schoolYearStart && family.value.schoolYearEnd) {
+      const start = new Date(family.value.schoolYearStart)
+      const end = new Date(family.value.schoolYearEnd)
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        return `${start.getFullYear()}-${end.getFullYear()}`
+      }
+    }
+    return ''
   })
 
   // Actions
