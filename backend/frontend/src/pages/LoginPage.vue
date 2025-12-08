@@ -20,8 +20,9 @@ async function handleSubmit() {
     await authStore.login(email.value, password.value)
     const redirect = route.query.redirect as string || '/'
     router.push(redirect)
-  } catch (e: any) {
-    error.value = e.response?.data?.error?.message || 'Invalid email or password'
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } } }
+    error.value = err.response?.data?.error || 'Invalid email or password'
   } finally {
     loading.value = false
   }

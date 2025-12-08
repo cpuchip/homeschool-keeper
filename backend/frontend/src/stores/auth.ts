@@ -1,17 +1,24 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User } from '@/types'
-import { authApi } from '@/api/auth'
+import type { User, Family } from '@/types'
+import { authApi, type RegisterRequest } from '@/api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('token'))
+  const family = ref<Family | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const initialized = ref(false)
 
   // Getters
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => !!user.value)
+  const currentSchoolYear = computed(() => {
+    if (!family.value) return ''
+    const start = new Date(family.value.schoolYearStart)
+    const end = new Date(family.value.schoolYearEnd)
+    return `${start.getFullYear()}-${end.getFullYear()}`
+  })
 
   // Actions
   async function login(email: string, password: string) {
@@ -19,29 +26,27 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     try {
       const response = await authApi.login(email, password)
-      token.value = response.accessToken
       user.value = response.user
-      localStorage.setItem('token', response.accessToken)
-      localStorage.setItem('refreshToken', response.refreshToken)
-    } catch (e: any) {
-      error.value = e.message || 'Login failed'
+      family.value = response.family
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string }
+      error.value = err.response?.data?.error || err.message || 'Login failed'
       throw e
     } finally {
       loading.value = false
     }
   }
 
-  async function register(name: string, email: string, password: string) {
+  async function register(data: RegisterRequest) {
     loading.value = true
     error.value = null
     try {
-      const response = await authApi.register(name, email, password)
-      token.value = response.accessToken
+      const response = await authApi.register(data)
       user.value = response.user
-      localStorage.setItem('token', response.accessToken)
-      localStorage.setItem('refreshToken', response.refreshToken)
-    } catch (e: any) {
-      error.value = e.message || 'Registration failed'
+      family.value = response.family
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string }
+      error.value = err.response?.data?.error || err.message || 'Registration failed'
       throw e
     } finally {
       loading.value = false
@@ -51,55 +56,51 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       await authApi.logout()
-    } catch (e) {
+    } catch {
       // Ignore logout errors
     } finally {
-      token.value = null
       user.value = null
-      localStorage.removeItem('token')
-      localStorage.removeItem('refreshToken')
-    }
-  }
-
-  async function refreshToken() {
-    const refresh = localStorage.getItem('refreshToken')
-    if (!refresh) {
-      await logout()
-      return
-    }
-    try {
-      const response = await authApi.refresh(refresh)
-      token.value = response.accessToken
-      localStorage.setItem('token', response.accessToken)
-      localStorage.setItem('refreshToken', response.refreshToken)
-    } catch (e) {
-      await logout()
+      family.value = null
     }
   }
 
   async function fetchUser() {
-    if (!token.value) return
+    if (initialized.value) return
+    
     try {
-      const userData = await authApi.me()
-      user.value = userData
-    } catch (e) {
-      await logout()
+      const data = await authApi.me()
+      user.value = data.user
+      family.value = data.family
+    } catch {
+      // Not authenticated
+      user.value = null
+      family.value = null
+    } finally {
+      initialized.value = true
+    }
+  }
+
+  function updateFamily(updates: Partial<Family>) {
+    if (family.value) {
+      family.value = { ...family.value, ...updates }
     }
   }
 
   return {
     // State
     user,
-    token,
+    family,
     loading,
     error,
+    initialized,
     // Getters
     isAuthenticated,
+    currentSchoolYear,
     // Actions
     login,
     register,
     logout,
-    refreshToken,
-    fetchUser
+    fetchUser,
+    updateFamily
   }
 })

@@ -1,29 +1,49 @@
 import api from './client'
-import type { AuthResponse, User } from '@/types'
+import type { AuthResponse, User, Family } from '@/types'
+
+export interface RegisterRequest {
+  name: string
+  email: string
+  password: string
+  familyName: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
 
 export const authApi = {
-  async register(name: string, email: string, password: string): Promise<AuthResponse> {
-    const response = await api.post('/v1/auth/register', { name, email, password })
+  /**
+   * Register a new user and family
+   * Creates both user and family in one request
+   */
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    const response = await api.post('/v1/auth/register', data)
     return response.data
   },
 
+  /**
+   * Login with email and password
+   * Sets HttpOnly session cookie
+   */
   async login(email: string, password: string): Promise<AuthResponse> {
     const response = await api.post('/v1/auth/login', { email, password })
     return response.data
   },
 
-  async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const response = await api.post('/v1/auth/refresh', { refreshToken })
-    return response.data
-  },
-
+  /**
+   * Logout and clear session
+   */
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('refreshToken')
-    await api.post('/v1/auth/logout', { refreshToken })
+    await api.post('/v1/auth/logout')
   },
 
-  async me(): Promise<User> {
-    const response = await api.get('/v1/users/me')
+  /**
+   * Get current authenticated user
+   */
+  async me(): Promise<{ user: User; family: Family }> {
+    const response = await api.get('/v1/auth/me')
     return response.data
   }
 }

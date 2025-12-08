@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('@/pages/OnboardingPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/',
       component: () => import('@/layouts/AppLayout.vue'),
       meta: { requiresAuth: true },

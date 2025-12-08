@@ -238,10 +238,10 @@ FERPA applies to **educational agencies receiving federal funds**:
 ### 1.1 Testing Infrastructure (Do First!)
 **Rationale**: Testing-first approach as requested
 
-- [ ] **1.1.1** Set up Go test structure
+- [x] **1.1.1** Set up Go test structure *(Completed Dec 7, 2025)*
   - `backend/*_test.go` files
   - Add `testify` to go.mod
-  - Create test MongoDB container helper
+  - Create test MongoDB container helper (testutil package)
 
 - [ ] **1.1.2** Set up Vue/Vitest
   - Configure vitest in `backend/frontend/`
@@ -253,7 +253,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   - Create basic E2E test structure
   - Add E2E to CI pipeline (optional for Phase 1A)
 
-- [ ] **1.1.4** Set up Flutter tests
+- [ ] **1.1.4** Set up Flutter tests *(Deferred to Phase 1B)*
   - Organize `mobile/test/` structure
   - Create mock providers for testing
 
@@ -261,7 +261,7 @@ FERPA applies to **educational agencies receiving federal funds**:
 **Location**: `backend/crypto/`  
 **Purpose**: Application-level field encryption for PII (free, no enterprise deps)
 
-- [ ] **1.2.1** Create `backend/crypto/crypto.go`
+- [x] **1.2.1** Create `backend/crypto/crypto.go` *(Completed Dec 7, 2025)*
   ```go
   package crypto
   
@@ -281,7 +281,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   - Per-family key derivation (SHA256 of masterKey + familyId)
   - **Tests**: Encrypt/decrypt roundtrip, wrong key fails, empty string handling
 
-- [ ] **1.2.2** Create `backend/crypto/fields.go`
+- [x] **1.2.2** Create `backend/crypto/fields.go` *(Completed Dec 7, 2025)*
   ```go
   // EncryptField encrypts a field value for storage
   // Returns empty string if input is empty (nil-safe)
@@ -301,7 +301,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   - Nil-safe (handles empty/nil gracefully)
   - **Tests**: Time roundtrip, nil handling, invalid ciphertext
 
-- [ ] **1.2.3** Add `ENCRYPTION_MASTER_KEY` to config
+- [x] **1.2.3** Add `ENCRYPTION_MASTER_KEY` to config *(Completed Dec 7, 2025)*
   - Add to `backend/config/env.go`
   - Document in `.env.example`
   - Minimum 32 characters, validated at startup
@@ -310,24 +310,24 @@ FERPA applies to **educational agencies receiving federal funds**:
 **Location**: `backend/auth/`  
 **Pattern**: Follow ForKirk `backend/auth/auth.go`
 
-- [ ] **1.3.1** Create `backend/auth/auth.go`
+- [x] **1.3.1** Create `backend/auth/session.go` *(Completed Dec 7, 2025)*
   - Session management with `gorilla/securecookie`
   - Cookie-based session (30-day expiry)
   - `InitSession(secret string)`, `SetUser()`, `GetUser()`, `ClearSession()`
   - **Tests**: Session encoding/decoding, expiry
 
-- [ ] **1.3.2** Create `backend/auth/password.go`
+- [x] **1.3.2** Create `backend/auth/password.go` *(Completed Dec 7, 2025)*
   - `HashPassword(password string)` - bcrypt cost 12
   - `CheckPassword(hash, password string)` - timing-safe comparison
   - **Tests**: Hash/check roundtrip, invalid password rejection
 
-- [ ] **1.3.3** Create `backend/auth/middleware.go`
+- [x] **1.3.3** Create `backend/auth/middleware.go` *(Completed Dec 7, 2025)*
   - `RequireAuth` middleware that checks session
   - `OptionalAuth` middleware for public routes
   - Extract user from context with `GetUserFromContext(ctx)`
   - **Tests**: Middleware with/without valid session
 
-- [ ] **1.3.4** Create `backend/auth/handlers.go`
+- [x] **1.3.4** Auth handlers moved to `backend/handlers/auth.go` *(Completed Dec 7, 2025)*
   - `POST /api/v1/auth/register` - email/password registration
     - Creates user + family in one transaction
     - Seeds default subjects based on onboarding selections
@@ -340,7 +340,7 @@ FERPA applies to **educational agencies receiving federal funds**:
 **Location**: `backend/models/`  
 **Pattern**: Follow ForKirk `backend/quotes/models.go` (bson + json tags)
 
-- [ ] **1.4.1** Create `backend/models/user.go`
+- [x] **1.4.1** Create `backend/models/user.go` *(Completed Dec 7, 2025)*
   ```go
   type User struct {
       ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -354,7 +354,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   }
   ```
 
-- [ ] **1.4.2** Create `backend/models/family.go`
+- [x] **1.4.2** Create `backend/models/family.go` *(Completed Dec 7, 2025)*
   ```go
   // Family is the core unit - every user, student, and log belongs to a family
   // In Phase 1A, Family = Organization (1:1), but schema supports multi-family orgs
@@ -378,7 +378,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   }
   ```
 
-- [ ] **1.4.3** Create `backend/models/organization.go` (for Phase 1B co-op support)
+- [x] **1.4.3** Create `backend/models/organization.go` *(Completed Dec 7, 2025)*
   ```go
   // Organization represents a co-op or group of families
   // Phase 1A: Not used, but schema ready
@@ -391,7 +391,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   }
   ```
 
-- [ ] **1.4.4** Create `backend/models/student.go`
+- [x] **1.4.4** Create `backend/models/student.go` *(Completed Dec 7, 2025)*
   ```go
   type Student struct {
       ID             primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
@@ -410,7 +410,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   // UserID links to User record when parent creates student login
   ```
 
-- [ ] **1.3.5** Create `backend/models/subject.go`
+- [x] **1.4.5** Create `backend/models/subject.go` *(Completed Dec 7, 2025)*
   ```go
   type Subject struct {
       ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -425,7 +425,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   }
   ```
 
-- [ ] **1.3.6** Create `backend/models/log_entry.go`
+- [x] **1.4.6** Create `backend/models/log_entry.go` *(Completed Dec 7, 2025)*
   ```go
   type LogEntry struct {
       ID             primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
@@ -446,7 +446,7 @@ FERPA applies to **educational agencies receiving federal funds**:
   }
   ```
 
-- [ ] **1.3.7** Create `backend/models/location.go` (for location management)
+- [x] **1.4.7** Create `backend/models/location.go` *(Completed Dec 7, 2025)*
   ```go
   // Location represents a saved location for quick selection
   type Location struct {
@@ -459,30 +459,30 @@ FERPA applies to **educational agencies receiving federal funds**:
   }
   ```
 
-### 1.4 Repository Package
+### 1.5 Repository Package
 **Location**: `backend/repository/`  
 **Pattern**: Follow ForKirk `backend/quotes/store.go`
 
-- [ ] **1.4.1** Create `backend/repository/repository.go`
+- [x] **1.5.1** Create `backend/repository/repository.go` *(Completed Dec 7, 2025)*
   - Common interface and MongoDB collection helpers
   - Context timeout wrappers
   - **Tests**: Collection access, context handling
 
-- [ ] **1.4.2** Create `backend/repository/users.go`
+- [x] **1.5.2** Create `backend/repository/users.go` *(Completed Dec 7, 2025)*
   - `CreateUser(ctx, user)` - with email uniqueness check
   - `GetUserByEmail(ctx, email)` - for login
   - `GetUserByID(ctx, id)` - for session
   - `UpdateUser(ctx, id, update)`
   - **Tests**: CRUD operations, duplicate email handling
 
-- [ ] **1.4.3** Create `backend/repository/families.go`
+- [x] **1.5.3** Create `backend/repository/families.go` *(Completed Dec 7, 2025)*
   - `CreateFamily(ctx, family)`
   - `GetFamilyByID(ctx, id)`
   - `UpdateFamily(ctx, id, update)`
   - `GetFamilyWithUsers(ctx, id)` - includes users for display
   - **Tests**: CRUD, settings updates
 
-- [ ] **1.4.4** Create `backend/repository/students.go`
+- [x] **1.5.4** Create `backend/repository/students.go` *(Completed Dec 7, 2025)*
   - `CreateStudent(ctx, student)`
   - `GetStudentsByFamily(ctx, familyID)`
   - `GetStudentByID(ctx, id)`
@@ -490,14 +490,14 @@ FERPA applies to **educational agencies receiving federal funds**:
   - `SoftDeleteStudent(ctx, id)` - sets active=false
   - **Tests**: CRUD, soft delete, family isolation
 
-- [ ] **1.4.5** Create `backend/repository/subjects.go`
+- [x] **1.5.5** Create `backend/repository/subjects.go` *(Completed Dec 7, 2025)*
   - `CreateSubject(ctx, subject)`
   - `GetSubjectsByFamily(ctx, familyID)`
   - `UpdateSubject(ctx, id, update)`
   - `SeedDefaultSubjects(ctx, familyID, selectedSubjects)` - from onboarding
   - **Tests**: CRUD, seeding
 
-- [ ] **1.4.6** Create `backend/repository/logs.go`
+- [x] **1.5.6** Create `backend/repository/logs.go` *(Completed Dec 7, 2025)*
   - `CreateLogEntry(ctx, log)`
   - `GetLogsByFamily(ctx, familyID, filters, pagination)`
   - `GetLogsByStudent(ctx, studentID, dateRange)`
@@ -505,21 +505,21 @@ FERPA applies to **educational agencies receiving federal funds**:
   - `DeleteLogEntry(ctx, id)`
   - **Tests**: CRUD, filtering, date range queries
 
-- [ ] **1.4.7** Create `backend/repository/stats.go`
+- [x] **1.5.7** Stats functions in `backend/repository/logs.go` *(Completed Dec 7, 2025)*
   - `GetStudentStats(ctx, studentID, schoolYear)` - aggregation
   - `GetFamilyStats(ctx, familyID, schoolYear)` - all students
   - **Tests**: Aggregation accuracy
 
-### 1.5 Handlers Package
+### 1.6 Handlers Package
 **Location**: `backend/handlers/`
 
-- [ ] **1.5.1** Create `backend/handlers/helpers.go`
+- [x] **1.6.1** Create `backend/handlers/helpers.go` *(Completed Dec 7, 2025)*
   - JSON response helpers
   - Error response helpers
   - Request parsing helpers
   - **Tests**: Response formatting
 
-- [ ] **1.5.2** Create `backend/handlers/students.go`
+- [x] **1.6.2** Create `backend/handlers/students.go` *(Completed Dec 7, 2025)*
   - `POST /api/v1/students` - create student
   - `GET /api/v1/students` - list students in family
   - `GET /api/v1/students/{id}` - get student with stats
@@ -527,14 +527,14 @@ FERPA applies to **educational agencies receiving federal funds**:
   - `DELETE /api/v1/students/{id}` - soft delete
   - **Tests**: All endpoints with auth, validation
 
-- [ ] **1.5.3** Create `backend/handlers/subjects.go`
+- [x] **1.6.3** Create `backend/handlers/subjects.go` *(Completed Dec 7, 2025)*
   - `POST /api/v1/subjects`
   - `GET /api/v1/subjects`
   - `PATCH /api/v1/subjects/{id}`
   - `DELETE /api/v1/subjects/{id}`
   - **Tests**: All endpoints
 
-- [ ] **1.5.4** Create `backend/handlers/logs.go`
+- [x] **1.6.4** Create `backend/handlers/logs.go` *(Completed Dec 7, 2025)*
   - `POST /api/v1/logs` - create log entry (quick log)
   - `GET /api/v1/logs` - list with filters (studentId, subjectId, date range, schoolYear)
   - `GET /api/v1/logs/{id}` - single log
@@ -542,74 +542,77 @@ FERPA applies to **educational agencies receiving federal funds**:
   - `DELETE /api/v1/logs/{id}` - delete
   - **Tests**: All endpoints, filtering, hour increment validation
 
-- [ ] **1.5.5** Create `backend/handlers/stats.go`
+- [x] **1.6.5** Create `backend/handlers/stats.go` *(Completed Dec 7, 2025)*
   - `GET /api/v1/stats/student/{id}` - hours by subject, totals, progress
   - `GET /api/v1/stats/family` - all students summary
   - **Tests**: Stat calculations, school year boundaries
 
-- [ ] **1.5.6** Create `backend/handlers/onboarding.go`
+- [x] **1.6.6** Create `backend/handlers/onboarding.go` *(Completed Dec 7, 2025)*
   - `POST /api/v1/onboarding/complete` - finish onboarding with settings
   - Seeds subjects, sets school year
   - **Tests**: Full onboarding flow
 
-### 1.6 Wire Up Main.go
-- [ ] **1.6.1** Initialize auth session
-- [ ] **1.6.2** Register all routes with appropriate middleware
-- [ ] **1.6.3** Add request validation middleware
-- [ ] **1.6.4** Update health check with version and DB status
-- [ ] **1.6.5** Add graceful shutdown (already exists, verify)
+### 1.7 Wire Up Main.go *(Completed Dec 7, 2025)*
+- [x] **1.7.1** Initialize auth session
+- [x] **1.7.2** Register all routes with appropriate middleware
+- [x] **1.7.3** Add request validation middleware
+- [x] **1.7.4** Update health check with version and DB status
+- [x] **1.7.5** Add graceful shutdown (already exists, verify)
 
 ---
 
 ## Phase 1A: Frontend Tasks
 
-### 1.7 API Client Layer
+### 1.8 API Client Layer *(Completed Dec 7, 2025)*
 **Location**: `backend/frontend/src/api/`
 
-- [ ] **1.7.1** Update `auth.ts` - connect to real endpoints
-- [ ] **1.7.2** Create `students.ts` - CRUD operations
-- [ ] **1.7.3** Create `subjects.ts` - CRUD operations
-- [ ] **1.7.4** Create `logs.ts` - CRUD with filters
-- [ ] **1.7.5** Create `stats.ts` - stats endpoints
-- [ ] **1.7.6** Create `onboarding.ts` - onboarding flow
+- [x] **1.8.1** Update `auth.ts` - connect to real endpoints (cookie-based sessions)
+- [x] **1.8.2** Create `students.ts` - CRUD operations
+- [x] **1.8.3** Create `subjects.ts` - CRUD operations
+- [x] **1.8.4** Create `logs.ts` - CRUD with filters
+- [x] **1.8.5** Create `stats.ts` - stats endpoints
+- [x] **1.8.6** Create `onboarding.ts` - onboarding flow
+- [x] **1.8.7** Create `index.ts` - barrel exports for all API modules
 
-### 1.8 Pinia Stores
+### 1.9 Pinia Stores *(Completed Dec 7, 2025)*
 **Location**: `backend/frontend/src/stores/`
 
-- [ ] **1.8.1** Complete `auth.ts` - login/register/logout/session
-- [ ] **1.8.2** Create `family.ts` - family settings, school year
-- [ ] **1.8.3** Create `students.ts` - student list, CRUD
-- [ ] **1.8.4** Create `subjects.ts` - subject list, core/elective getters
-- [ ] **1.8.5** Create `logs.ts` - log list, filters, CRUD
-- [ ] **1.8.6** Create `stats.ts` - computed stats
+- [x] **1.9.1** Complete `auth.ts` - login/register/logout/session (cookie-based)
+- [x] **1.9.2** Family state integrated into `auth.ts` store
+- [x] **1.9.3** Create `students.ts` - student list, CRUD
+- [x] **1.9.4** Create `subjects.ts` - subject list, core/elective getters
+- [x] **1.9.5** Create `logs.ts` - log list, filters, CRUD
+- [x] **1.9.6** Create `stats.ts` - computed stats
+- [x] **1.9.7** Create `index.ts` - barrel exports for all stores
 
-### 1.9 Pages
+### 1.10 Pages
 **Location**: `backend/frontend/src/pages/`
 
-- [ ] **1.9.1** Wire `LoginPage.vue` - form validation, error handling
-- [ ] **1.9.2** Wire `RegisterPage.vue` - form validation, redirect to onboarding
-- [ ] **1.9.3** Create `OnboardingPage.vue` - school year, subjects, settings
-- [ ] **1.9.4** Wire `DashboardPage.vue` - real stats, progress bars
-- [ ] **1.9.5** Wire `StudentsPage.vue` - list, add/edit modals
-- [ ] **1.9.6** Wire `StudentDetailPage.vue` - student info, logs, stats
-- [ ] **1.9.7** Wire `SubjectsPage.vue` - list, add/edit modals
-- [ ] **1.9.8** Wire `LogsPage.vue` - filterable list, date range
-- [ ] **1.9.9** Wire `QuickLogPage.vue` - streamlined log entry form
-- [ ] **1.9.10** Wire `SettingsPage.vue` - family settings
+- [ ] **1.10.1** Wire `LoginPage.vue` - form validation, error handling
+- [x] **1.10.2** Wire `RegisterPage.vue` - form validation, redirect to onboarding *(Dec 7, 2025)*
+- [x] **1.10.3** Create `OnboardingPage.vue` - school year, subjects, settings *(Dec 7, 2025)*
+- [ ] **1.10.4** Wire `DashboardPage.vue` - real stats, progress bars
+- [ ] **1.10.5** Wire `StudentsPage.vue` - list, add/edit modals
+- [ ] **1.10.6** Wire `StudentDetailPage.vue` - student info, logs, stats
+- [ ] **1.10.7** Wire `SubjectsPage.vue` - list, add/edit modals
+- [ ] **1.10.8** Wire `LogsPage.vue` - filterable list, date range
+- [ ] **1.10.9** Wire `QuickLogPage.vue` - streamlined log entry form
+- [ ] **1.10.10** Wire `SettingsPage.vue` - family settings
 
-### 1.10 Components
+### 1.11 Components *(Completed Dec 7, 2025)*
 **Location**: `backend/frontend/src/components/`
 
-- [ ] **1.10.1** Create `components/common/` folder
-- [ ] **1.10.2** `BaseButton.vue` - primary, secondary, danger, loading
-- [ ] **1.10.3** `BaseInput.vue` - text, email, password with validation
-- [ ] **1.10.4** `BaseSelect.vue` - dropdown with options
-- [ ] **1.10.5** `BaseModal.vue` - dialog wrapper
-- [ ] **1.10.6** `HourPicker.vue` - increment-aware hour selector (0.25, 0.5, etc.)
-- [ ] **1.10.7** `ProgressBar.vue` - hours progress display
-- [ ] **1.10.8** `DateRangePicker.vue` - for filtering logs
-- [ ] **1.10.9** `StudentCard.vue` - dashboard student summary
-- [ ] **1.10.10** `LogEntryRow.vue` - log list item
+- [x] **1.11.1** Create `components/common/` folder
+- [x] **1.11.2** `BaseButton.vue` - primary, secondary, danger, loading
+- [x] **1.11.3** `BaseInput.vue` - text, email, password with validation
+- [x] **1.11.4** `BaseSelect.vue` - dropdown with options
+- [x] **1.11.5** `BaseModal.vue` - dialog wrapper
+- [x] **1.11.6** `HourPicker.vue` - increment-aware hour selector (0.25, 0.5, etc.)
+- [x] **1.11.7** `ProgressBar.vue` - hours progress display
+- [x] **1.11.8** `DateRangePicker.vue` - for filtering logs
+- [x] **1.11.9** `StudentCard.vue` - dashboard student summary
+- [x] **1.11.10** `LogEntryRow.vue` - log list item
+- [x] **1.11.11** `index.ts` - barrel exports for all components
 
 ---
 

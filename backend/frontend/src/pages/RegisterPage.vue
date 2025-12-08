@@ -7,6 +7,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const name = ref('')
+const familyName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -29,10 +30,17 @@ async function handleSubmit() {
   loading.value = true
 
   try {
-    await authStore.register(name.value, email.value, password.value)
-    router.push('/')
-  } catch (e: any) {
-    error.value = e.response?.data?.error?.message || 'Registration failed'
+    await authStore.register({
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      familyName: familyName.value || `${name.value}'s Family`
+    })
+    // Redirect to onboarding to complete setup
+    router.push('/onboarding')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } } }
+    error.value = err.response?.data?.error || 'Registration failed'
   } finally {
     loading.value = false
   }
@@ -59,7 +67,7 @@ async function handleSubmit() {
 
         <div class="space-y-4">
           <div>
-            <label for="name" class="label">Name</label>
+            <label for="name" class="label">Your Name</label>
             <input
               id="name"
               v-model="name"
@@ -69,6 +77,19 @@ async function handleSubmit() {
               class="mt-1 input"
               placeholder="Your name"
             />
+          </div>
+
+          <div>
+            <label for="familyName" class="label">Family Name</label>
+            <input
+              id="familyName"
+              v-model="familyName"
+              name="familyName"
+              type="text"
+              class="mt-1 input"
+              placeholder="The Smith Family (optional)"
+            />
+            <p class="mt-1 text-xs text-gray-500">Leave blank to use "Your Name's Family"</p>
           </div>
 
           <div>
