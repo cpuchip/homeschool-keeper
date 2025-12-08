@@ -67,6 +67,8 @@ jobs:
     - name: Run Go tests
       run: |
         cd backend
+        # Run all tests including integration tests with testcontainers
+        # Docker is pre-installed on ubuntu-latest runners
         go test -v -race -coverprofile=coverage.out ./...
 
     - name: Build Go backend
