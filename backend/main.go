@@ -13,9 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cpuchip/homeschool-keeper/backend/auth"
 	"github.com/cpuchip/homeschool-keeper/backend/config"
 	"github.com/cpuchip/homeschool-keeper/backend/db"
-	"github.com/gorilla/handlers"
+	"github.com/cpuchip/homeschool-keeper/backend/handlers"
+	"github.com/cpuchip/homeschool-keeper/backend/repository"
+	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -28,6 +31,14 @@ var embeddedFallback embed.FS
 func main() {
 	// Load configuration
 	cfg := config.Load()
+
+	// Validate required configuration
+	if cfg.SessionSecret == "" {
+		log.Fatal("SESSION_SECRET environment variable is required")
+	}
+
+	// Initialize session handling
+	auth.InitSession(cfg.SessionSecret)
 
 	// Connect to MongoDB
 	mongoClient, err := db.Connect(cfg.MongoURI)
@@ -45,17 +56,34 @@ func main() {
 		log.Printf("Connected to MongoDB")
 	}
 
+	// Get database
+	database := db.GetDatabase(mongoClient, cfg.DBName)
+
+	// Initialize repositories
+	var repo *repository.Repository
+	if database != nil {
+		repo = repository.New(database)
+
+		// Ensure indexes
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		if err := repo.EnsureIndexes(ctx); err != nil {
+			log.Printf("Warning: Failed to create indexes: %v", err)
+		}
+		cancel()
+	}
+
 	// Create router
 	r := mux.NewRouter()
 
 	// API routes
 	api := r.PathPrefix("/api").Subrouter()
-	
+
 	// Health check
 	api.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		status := map[string]any{
-			"status": "ok",
-			"time":   time.Now().UTC().Format(time.RFC3339),
+			"status":  "ok",
+			"time":    time.Now().UTC().Format(time.RFC3339),
+			"version": "1.0.0",
 		}
 		if mongoClient != nil {
 			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
@@ -71,33 +99,66 @@ func main() {
 		writeJSON(w, status)
 	}).Methods("GET")
 
-	// TODO: Add auth routes
-	// api.HandleFunc("/auth/register", handlers.Register).Methods("POST")
-	// api.HandleFunc("/auth/login", handlers.Login).Methods("POST")
-	// api.HandleFunc("/auth/refresh", handlers.Refresh).Methods("POST")
-	// api.HandleFunc("/auth/logout", handlers.Logout).Methods("POST")
+	// Only register API routes if database is available
+	if repo != nil {
+		// Initialize handlers
+		authHandler := handlers.NewAuthHandler(repo.Users, repo.Families, repo.Subjects)
+		studentHandler := handlers.NewStudentHandler(repo.Students, repo.Logs)
+		subjectHandler := handlers.NewSubjectHandler(repo.Subjects)
+		logHandler := handlers.NewLogHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
+		statsHandler := handlers.NewStatsHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
+		onboardingHandler := handlers.NewOnboardingHandler(repo.Families, repo.Subjects)
 
-	// TODO: Add resource routes
-	// api.HandleFunc("/v1/organization", ...).Methods("GET", "PATCH")
-	// api.HandleFunc("/v1/students", ...).Methods("GET", "POST")
-	// api.HandleFunc("/v1/students/{id}", ...).Methods("GET", "PATCH", "DELETE")
-	// api.HandleFunc("/v1/subjects", ...).Methods("GET", "POST")
-	// api.HandleFunc("/v1/logs", ...).Methods("GET", "POST")
-	// api.HandleFunc("/v1/logs/{id}", ...).Methods("GET", "PATCH", "DELETE")
-	// api.HandleFunc("/v1/stats/student/{id}", ...).Methods("GET")
+		// Auth routes (no authentication required)
+		api.HandleFunc("/v1/auth/register", authHandler.Register).Methods("POST")
+		api.HandleFunc("/v1/auth/login", authHandler.Login).Methods("POST")
+		api.HandleFunc("/v1/auth/logout", authHandler.Logout).Methods("POST")
+		api.HandleFunc("/v1/auth/me", auth.RequireAuthFunc(authHandler.Me)).Methods("GET")
+
+		// Onboarding routes (authentication required)
+		api.HandleFunc("/v1/onboarding/subjects", onboardingHandler.GetDefaultSubjects).Methods("GET")
+		api.HandleFunc("/v1/onboarding/status", auth.RequireAuthFunc(onboardingHandler.GetStatus)).Methods("GET")
+		api.HandleFunc("/v1/onboarding/complete", auth.RequireAuthFunc(onboardingHandler.Complete)).Methods("POST")
+
+		// Student routes (authentication required)
+		api.HandleFunc("/v1/students", auth.RequireAuthFunc(studentHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/students", auth.RequireAuthFunc(studentHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/students/{id}", auth.RequireAuthFunc(studentHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/students/{id}", auth.RequireAuthFunc(studentHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/students/{id}", auth.RequireAuthFunc(studentHandler.Delete)).Methods("DELETE")
+
+		// Subject routes (authentication required)
+		api.HandleFunc("/v1/subjects", auth.RequireAuthFunc(subjectHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/subjects", auth.RequireAuthFunc(subjectHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/subjects/{id}", auth.RequireAuthFunc(subjectHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/subjects/{id}", auth.RequireAuthFunc(subjectHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/subjects/{id}", auth.RequireAuthFunc(subjectHandler.Delete)).Methods("DELETE")
+
+		// Log routes (authentication required)
+		api.HandleFunc("/v1/logs", auth.RequireAuthFunc(logHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/logs", auth.RequireAuthFunc(logHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/logs/{id}", auth.RequireAuthFunc(logHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/logs/{id}", auth.RequireAuthFunc(logHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/logs/{id}", auth.RequireAuthFunc(logHandler.Delete)).Methods("DELETE")
+
+		// Stats routes (authentication required)
+		api.HandleFunc("/v1/stats/student/{id}", auth.RequireAuthFunc(statsHandler.StudentStats)).Methods("GET")
+		api.HandleFunc("/v1/stats/family", auth.RequireAuthFunc(statsHandler.FamilyStats)).Methods("GET")
+	}
 
 	// Serve SPA frontend
 	r.PathPrefix("/").Handler(spaFileServer())
 
 	// CORS middleware
-	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	corsHandler := gorillaHandlers.CORS(
+		gorillaHandlers.AllowedOrigins([]string{"*"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}),
+		gorillaHandlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+		gorillaHandlers.AllowCredentials(),
 	)
 
 	// Logging middleware
-	loggedRouter := handlers.LoggingHandler(os.Stdout, corsHandler(r))
+	loggedRouter := gorillaHandlers.LoggingHandler(os.Stdout, corsHandler(r))
 
 	// Create server
 	srv := &http.Server{

@@ -10,9 +10,16 @@ import (
 type Config struct {
 	Port     string
 	MongoURI string
+	DBName   string
 	DevMode  bool
 
-	// JWT settings
+	// Session settings (web auth)
+	SessionSecret string
+
+	// Encryption settings
+	EncryptionMasterKey string
+
+	// JWT settings (mobile auth)
 	JWTSecret        string
 	JWTAccessExpiry  string
 	JWTRefreshExpiry string
@@ -25,12 +32,15 @@ func Load() *Config {
 	_ = godotenv.Load("../.env") // Also try parent directory
 
 	cfg := &Config{
-		Port:             getEnv("PORT", "8080"),
-		MongoURI:         getEnv("MONGODB_URI", ""),
-		DevMode:          getEnv("DEV_MODE", "false") == "true",
-		JWTSecret:        getEnv("JWT_SECRET", ""),
-		JWTAccessExpiry:  getEnv("JWT_ACCESS_EXPIRY", "15m"),
-		JWTRefreshExpiry: getEnv("JWT_REFRESH_EXPIRY", "168h"),
+		Port:                getEnv("PORT", "8080"),
+		MongoURI:            getEnv("MONGODB_URI", ""),
+		DBName:              getEnv("MONGO_DB", "hmslogs"),
+		DevMode:             getEnv("DEV_MODE", "false") == "true",
+		SessionSecret:       getEnv("SESSION_SECRET", ""),
+		EncryptionMasterKey: getEnv("ENCRYPTION_MASTER_KEY", ""),
+		JWTSecret:           getEnv("JWT_SECRET", ""),
+		JWTAccessExpiry:     getEnv("JWT_ACCESS_EXPIRY", "15m"),
+		JWTRefreshExpiry:    getEnv("JWT_REFRESH_EXPIRY", "168h"),
 	}
 
 	// Build MongoDB URI from parts if not provided directly
