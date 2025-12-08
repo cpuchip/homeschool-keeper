@@ -1,5 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useStudentsStore } from '@/stores/students'
+import { useSubjectsStore } from '@/stores/subjects'
+import { useLogsStore } from '@/stores/logs'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const studentsStore = useStudentsStore()
+const subjectsStore = useSubjectsStore()
+const logsStore = useLogsStore()
+const authStore = useAuthStore()
 
 const studentId = ref('')
 const subjectId = ref('')
@@ -7,45 +18,125 @@ const hours = ref(1)
 const description = ref('')
 const date = ref(new Date().toISOString().split('T')[0])
 const location = ref<'home' | 'other'>('home')
+const saving = ref(false)
+const error = ref('')
+const success = ref('')
 
-const hourIncrement = 0.25 // TODO: Get from org settings
+// Get hour increment from family settings (default 0.25)
+const hourIncrement = computed(() => authStore.family?.hourIncrement ?? 0.25)
+
+// Active students and subjects for dropdowns
+const activeStudents = computed(() => studentsStore.activeStudents)
+const activeSubjects = computed(() => subjectsStore.activeSubjects)
+
+// Group subjects by type for better UX
+const coreSubjects = computed(() => 
+  activeSubjects.value.filter(s => s.type === 'core')
+)
+const electiveSubjects = computed(() => 
+  activeSubjects.value.filter(s => s.type === 'elective')
+)
 
 function incrementHours() {
-  hours.value = Math.min(24, hours.value + hourIncrement)
+  hours.value = Math.min(24, Math.round((hours.value + hourIncrement.value) * 100) / 100)
 }
 
 function decrementHours() {
-  hours.value = Math.max(hourIncrement, hours.value - hourIncrement)
+  hours.value = Math.max(hourIncrement.value, Math.round((hours.value - hourIncrement.value) * 100) / 100)
 }
 
 function setHours(value: number) {
   hours.value = value
 }
 
-async function handleSubmit() {
-  // TODO: Submit log entry
-  console.log({
-    studentId: studentId.value,
-    subjectId: subjectId.value,
-    hours: hours.value,
-    description: description.value,
-    date: date.value,
-    location: location.value
-  })
+function resetForm() {
+  studentId.value = ''
+  subjectId.value = ''
+  hours.value = 1
+  description.value = ''
+  date.value = new Date().toISOString().split('T')[0]
+  location.value = 'home'
+  success.value = ''
+  error.value = ''
 }
+
+async function handleSubmit(addAnother = false) {
+  if (!studentId.value || !subjectId.value) {
+    error.value = 'Please select a student and subject'
+    return
+  }
+
+  saving.value = true
+  error.value = ''
+  success.value = ''
+
+  try {
+    await logsStore.createLog({
+      studentId: studentId.value,
+      subjectId: subjectId.value,
+      hours: hours.value,
+      description: description.value,
+      date: date.value,
+      locationType: location.value === 'home' ? 'home' : 'other'
+    })
+
+    if (addAnother) {
+      // Reset form but keep student/date for convenience
+      const currentStudent = studentId.value
+      const currentDate = date.value
+      resetForm()
+      studentId.value = currentStudent
+      date.value = currentDate
+      success.value = 'Log saved! Add another entry.'
+    } else {
+      // Go to logs page
+      router.push('/logs')
+    }
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Failed to save log'
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(async () => {
+  // Load students and subjects if not already loaded
+  if (studentsStore.students.length === 0) {
+    await studentsStore.fetchStudents()
+  }
+  if (subjectsStore.subjects.length === 0) {
+    await subjectsStore.fetchSubjects()
+  }
+  
+  // Auto-select if only one student
+  if (activeStudents.value.length === 1) {
+    studentId.value = activeStudents.value[0].id
+  }
+})
 </script>
 
 <template>
   <div class="max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Quick Log</h1>
 
-    <form class="card space-y-6" @submit.prevent="handleSubmit">
+    <!-- Success/Error messages -->
+    <div v-if="success" class="mb-4 p-3 bg-green-100 border border-green-200 text-green-700 rounded-lg">
+      {{ success }}
+    </div>
+    <div v-if="error" class="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg">
+      {{ error }}
+    </div>
+
+    <form class="card space-y-6" @submit.prevent="handleSubmit(false)">
       <!-- Student -->
       <div>
         <label for="student" class="label">Student</label>
         <select id="student" v-model="studentId" class="mt-1 input" required>
           <option value="">Select a student</option>
-          <!-- TODO: Populate from store -->
+          <option v-for="student in activeStudents" :key="student.id" :value="student.id">
+            {{ student.name }}
+            <template v-if="student.gradeLevel"> ({{ student.gradeLevel }})</template>
+          </option>
         </select>
       </div>
 
@@ -54,7 +145,16 @@ async function handleSubmit() {
         <label for="subject" class="label">Subject</label>
         <select id="subject" v-model="subjectId" class="mt-1 input" required>
           <option value="">Select a subject</option>
-          <!-- TODO: Populate from store -->
+          <optgroup v-if="coreSubjects.length > 0" label="Core Subjects">
+            <option v-for="subject in coreSubjects" :key="subject.id" :value="subject.id">
+              {{ subject.name }}
+            </option>
+          </optgroup>
+          <optgroup v-if="electiveSubjects.length > 0" label="Electives">
+            <option v-for="subject in electiveSubjects" :key="subject.id" :value="subject.id">
+              {{ subject.name }}
+            </option>
+          </optgroup>
         </select>
       </div>
 
@@ -64,7 +164,8 @@ async function handleSubmit() {
         <div class="mt-2 flex items-center justify-center space-x-4">
           <button
             type="button"
-            class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 text-2xl font-bold"
+            class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 text-2xl font-bold disabled:opacity-50"
+            :disabled="hours <= hourIncrement"
             @click="decrementHours"
           >
             −
@@ -74,7 +175,8 @@ async function handleSubmit() {
           </div>
           <button
             type="button"
-            class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 text-2xl font-bold"
+            class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 text-2xl font-bold disabled:opacity-50"
+            :disabled="hours >= 24"
             @click="incrementHours"
           >
             +
@@ -87,7 +189,7 @@ async function handleSubmit() {
             :key="preset"
             type="button"
             :class="[
-              'px-3 py-1 rounded-full text-sm',
+              'px-3 py-1 rounded-full text-sm transition-colors',
               hours === preset
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -115,7 +217,7 @@ async function handleSubmit() {
       <div>
         <label class="label">Location</label>
         <div class="mt-2 flex space-x-4">
-          <label class="flex items-center">
+          <label class="flex items-center cursor-pointer">
             <input
               v-model="location"
               type="radio"
@@ -124,7 +226,7 @@ async function handleSubmit() {
             />
             <span class="ml-2 text-sm text-gray-700">At Home</span>
           </label>
-          <label class="flex items-center">
+          <label class="flex items-center cursor-pointer">
             <input
               v-model="location"
               type="radio"
@@ -150,10 +252,19 @@ async function handleSubmit() {
 
       <!-- Submit -->
       <div class="flex space-x-4">
-        <button type="submit" class="flex-1 btn-primary">
-          Save Log
+        <button 
+          type="submit" 
+          class="flex-1 btn-primary disabled:opacity-50"
+          :disabled="saving"
+        >
+          {{ saving ? 'Saving...' : 'Save Log' }}
         </button>
-        <button type="button" class="flex-1 btn-secondary">
+        <button 
+          type="button" 
+          class="flex-1 btn-secondary disabled:opacity-50"
+          :disabled="saving"
+          @click="handleSubmit(true)"
+        >
           Save & Add Another
         </button>
       </div>

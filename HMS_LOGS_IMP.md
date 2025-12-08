@@ -585,19 +585,19 @@ FERPA applies to **educational agencies receiving federal funds**:
 - [x] **1.9.6** Create `stats.ts` - computed stats
 - [x] **1.9.7** Create `index.ts` - barrel exports for all stores
 
-### 1.10 Pages
+### 1.10 Pages *(Completed Dec 7, 2025)*
 **Location**: `backend/frontend/src/pages/`
 
-- [ ] **1.10.1** Wire `LoginPage.vue` - form validation, error handling
-- [x] **1.10.2** Wire `RegisterPage.vue` - form validation, redirect to onboarding *(Dec 7, 2025)*
-- [x] **1.10.3** Create `OnboardingPage.vue` - school year, subjects, settings *(Dec 7, 2025)*
-- [ ] **1.10.4** Wire `DashboardPage.vue` - real stats, progress bars
-- [ ] **1.10.5** Wire `StudentsPage.vue` - list, add/edit modals
-- [ ] **1.10.6** Wire `StudentDetailPage.vue` - student info, logs, stats
-- [ ] **1.10.7** Wire `SubjectsPage.vue` - list, add/edit modals
-- [ ] **1.10.8** Wire `LogsPage.vue` - filterable list, date range
-- [ ] **1.10.9** Wire `QuickLogPage.vue` - streamlined log entry form
-- [ ] **1.10.10** Wire `SettingsPage.vue` - family settings
+- [x] **1.10.1** Wire `LoginPage.vue` - form validation, error handling
+- [x] **1.10.2** Wire `RegisterPage.vue` - form validation, redirect to onboarding
+- [x] **1.10.3** Create `OnboardingPage.vue` - school year, subjects, settings
+- [x] **1.10.4** Wire `DashboardPage.vue` - real stats, progress bars
+- [x] **1.10.5** Wire `StudentsPage.vue` - list, add/edit modals
+- [x] **1.10.6** Wire `StudentDetailPage.vue` - student info, logs, stats
+- [x] **1.10.7** Wire `SubjectsPage.vue` - list, add/edit modals
+- [x] **1.10.8** Wire `LogsPage.vue` - filterable list, date range, edit/delete
+- [x] **1.10.9** Wire `QuickLogPage.vue` - streamlined log entry form
+- [x] **1.10.10** Wire `SettingsPage.vue` - family settings
 
 ### 1.11 Components *(Completed Dec 7, 2025)*
 **Location**: `backend/frontend/src/components/`
