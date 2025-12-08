@@ -76,9 +76,9 @@ jobs:
 
     - name: Test API endpoints
       env:
-        SESSION_SECRET: test-session-secret-for-ci-only
-        ENCRYPTION_MASTER_KEY: test-encryption-key-32chars123
-        JWT_SECRET: test-jwt-secret-for-ci
+        SESSION_SECRET: test-session-secret-for-ci-min32chars
+        ENCRYPTION_MASTER_KEY: test-encryption-key-for-ci-min32c
+        JWT_SECRET: test-jwt-secret-for-ci-min32chars
         DEV_MODE: "true"
       run: |
         cd backend
