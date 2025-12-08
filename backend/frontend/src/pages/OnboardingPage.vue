@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { onboardingApi } from '@/api/onboarding'
+import { onboardingApi, type SubjectOption } from '@/api/onboarding'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -19,9 +19,9 @@ const timezone = ref(Intl.DateTimeFormat().resolvedOptions().timeZone)
 const schoolYearStart = ref('')
 const schoolYearEnd = ref('')
 
-// Step 3: Subjects
-const availableSubjects = ref<string[]>([])
-const selectedSubjects = ref<string[]>([])
+// Step 3: Subjects - SubjectOption type imported from @/api/onboarding
+const availableSubjects = ref<SubjectOption[]>([])
+const selectedSubjects = ref<string[]>([])  // Store just the names for selection
 
 // Step 4: First Student
 const students = ref<Array<{ name: string; gradeLevel: string }>>([
@@ -71,14 +71,22 @@ onMounted(async () => {
 
 async function loadSubjects() {
   try {
-    availableSubjects.value = await onboardingApi.getDefaultSubjects(state.value)
+    const subjects = await onboardingApi.getDefaultSubjects(state.value)
+    availableSubjects.value = subjects
     // Select all by default
-    selectedSubjects.value = [...availableSubjects.value]
+    selectedSubjects.value = subjects.map(s => s.name)
   } catch {
     // Use fallback subjects
     availableSubjects.value = [
-      'Math', 'Language Arts', 'Reading', 'Science', 'Social Studies',
-      'Art', 'Music', 'Physical Education', 'Health'
+      { name: 'Math', type: 'core', color: '#10B981' },
+      { name: 'Language Arts', type: 'core', color: '#F59E0B' },
+      { name: 'Reading', type: 'core', color: '#3B82F6' },
+      { name: 'Science', type: 'core', color: '#8B5CF6' },
+      { name: 'Social Studies', type: 'core', color: '#EC4899' },
+      { name: 'Art', type: 'elective', color: '#06B6D4' },
+      { name: 'Music', type: 'elective', color: '#F97316' },
+      { name: 'Physical Education', type: 'elective', color: '#84CC16' },
+      { name: 'Health', type: 'elective', color: '#14B8A6' }
     ]
     selectedSubjects.value = ['Math', 'Language Arts', 'Reading', 'Science', 'Social Studies']
   }
@@ -130,7 +138,7 @@ async function completeOnboarding() {
       schoolYearStart: schoolYearStart.value,
       schoolYearEnd: schoolYearEnd.value,
       hourIncrement: hourIncrement.value,
-      selectedSubjects: selectedSubjects.value,
+      subjects: selectedSubjects.value,
       students: validStudents
     })
 
@@ -256,17 +264,29 @@ async function completeOnboarding() {
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <button
             v-for="subject in availableSubjects"
-            :key="subject"
+            :key="subject.name"
             type="button"
-            @click="toggleSubject(subject)"
+            @click="toggleSubject(subject.name)"
             :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              selectedSubjects.includes(subject)
-                ? 'bg-primary-100 text-primary-700 border-2 border-primary-500'
-                : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+              'px-4 py-3 rounded-lg text-sm font-medium transition-all',
+              selectedSubjects.includes(subject.name)
+                ? 'ring-2 ring-offset-2 shadow-md'
+                : 'hover:shadow-md border-2 border-transparent'
             ]"
+            :style="{
+              backgroundColor: selectedSubjects.includes(subject.name) ? subject.color + '20' : '#f3f4f6',
+              color: selectedSubjects.includes(subject.name) ? subject.color : '#374151',
+              '--tw-ring-color': subject.color
+            }"
           >
-            {{ subject }}
+            <span class="flex items-center justify-center gap-2">
+              <span 
+                class="w-3 h-3 rounded-full" 
+                :style="{ backgroundColor: subject.color }"
+              ></span>
+              {{ subject.name }}
+            </span>
+            <span class="text-xs opacity-75 mt-1 block">{{ subject.type }}</span>
           </button>
         </div>
 

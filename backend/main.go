@@ -107,7 +107,7 @@ func main() {
 		subjectHandler := handlers.NewSubjectHandler(repo.Subjects)
 		logHandler := handlers.NewLogHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
 		statsHandler := handlers.NewStatsHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
-		onboardingHandler := handlers.NewOnboardingHandler(repo.Families, repo.Subjects)
+		onboardingHandler := handlers.NewOnboardingHandler(repo.Families, repo.Subjects, repo.Students)
 
 		// Auth routes (no authentication required)
 		api.HandleFunc("/v1/auth/register", authHandler.Register).Methods("POST")

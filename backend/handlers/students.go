@@ -56,6 +56,11 @@ func (h *StudentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure students is never null in JSON response
+	if students == nil {
+		students = []models.Student{}
+	}
+
 	JSON(w, http.StatusOK, students)
 }
 

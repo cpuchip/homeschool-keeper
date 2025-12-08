@@ -14,23 +14,32 @@ import (
 type OnboardingHandler struct {
 	families *repository.FamilyRepository
 	subjects *repository.SubjectRepository
+	students *repository.StudentRepository
 }
 
 // NewOnboardingHandler creates a new OnboardingHandler
-func NewOnboardingHandler(families *repository.FamilyRepository, subjects *repository.SubjectRepository) *OnboardingHandler {
+func NewOnboardingHandler(families *repository.FamilyRepository, subjects *repository.SubjectRepository, students *repository.StudentRepository) *OnboardingHandler {
 	return &OnboardingHandler{
 		families: families,
 		subjects: subjects,
+		students: students,
 	}
+}
+
+// OnboardingStudent represents a student being added during onboarding
+type OnboardingStudent struct {
+	Name       string `json:"name"`
+	GradeLevel string `json:"gradeLevel"`
 }
 
 // CompleteOnboardingRequest is the request body for completing onboarding
 type CompleteOnboardingRequest struct {
-	SchoolYearStart string   `json:"schoolYearStart"` // YYYY-MM-DD
-	SchoolYearEnd   string   `json:"schoolYearEnd"`   // YYYY-MM-DD
-	Subjects        []string `json:"subjects"`        // List of subject names to seed
-	Timezone        string   `json:"timezone"`
-	HourIncrement   float64  `json:"hourIncrement,omitempty"` // 0.25 default
+	SchoolYearStart string              `json:"schoolYearStart"` // YYYY-MM-DD
+	SchoolYearEnd   string              `json:"schoolYearEnd"`   // YYYY-MM-DD
+	Subjects        []string            `json:"subjects"`        // List of subject names to seed
+	Students        []OnboardingStudent `json:"students"`        // Students to create
+	Timezone        string              `json:"timezone"`
+	HourIncrement   float64             `json:"hourIncrement,omitempty"` // 0.25 default
 }
 
 // DefaultSubjectsResponse lists available default subjects
@@ -143,6 +152,23 @@ func (h *OnboardingHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	if err := h.subjects.SeedDefaults(r.Context(), familyID, req.Subjects); err != nil {
 		InternalError(w)
 		return
+	}
+
+	// Create students
+	for _, s := range req.Students {
+		if s.Name == "" {
+			continue // Skip empty students
+		}
+		student := &models.Student{
+			FamilyID:   familyID,
+			Name:       s.Name,
+			GradeLevel: s.GradeLevel,
+			Active:     true,
+		}
+		if err := h.students.Create(r.Context(), student); err != nil {
+			InternalError(w)
+			return
+		}
 	}
 
 	// Return updated family

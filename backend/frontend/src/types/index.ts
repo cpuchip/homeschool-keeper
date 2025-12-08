@@ -155,7 +155,7 @@ export interface OnboardingData {
   schoolYearStart: string
   schoolYearEnd: string
   hourIncrement: number
-  selectedSubjects: string[] // subject names to seed
+  subjects: string[] // subject names to seed (matches backend field name)
   students: Array<{
     name: string
     gradeLevel: string

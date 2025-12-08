@@ -73,8 +73,13 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+  
+  // Fetch user session on first navigation (check if already logged in via cookie)
+  if (!authStore.initialized) {
+    await authStore.fetchUser()
+  }
   
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })

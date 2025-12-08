@@ -109,7 +109,24 @@ func (h *LogHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	JSON(w, http.StatusOK, logs)
+	// Ensure logs is never null in JSON response
+	if logs == nil {
+		logs = []models.LogEntry{}
+	}
+
+	// Calculate page from offset
+	page := int64(1)
+	if pagination.Limit > 0 {
+		page = (pagination.Offset / pagination.Limit) + 1
+	}
+
+	// Return response with logs wrapped in expected structure
+	JSON(w, http.StatusOK, map[string]interface{}{
+		"logs":  logs,
+		"total": len(logs), // TODO: add proper count query for pagination
+		"page":  page,
+		"limit": pagination.Limit,
+	})
 }
 
 // Get handles GET /api/v1/logs/{id}

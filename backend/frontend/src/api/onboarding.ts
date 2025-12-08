@@ -1,6 +1,12 @@
 import api from './client'
 import type { OnboardingData, Family } from '@/types'
 
+export interface SubjectOption {
+  name: string
+  type: string
+  color: string
+}
+
 export const onboardingApi = {
   /**
    * Complete the onboarding process
@@ -14,7 +20,7 @@ export const onboardingApi = {
   /**
    * Get default subjects for a state (used during onboarding)
    */
-  async getDefaultSubjects(state: string): Promise<string[]> {
+  async getDefaultSubjects(state: string): Promise<SubjectOption[]> {
     const response = await api.get(`/v1/onboarding/subjects?state=${state}`)
     return response.data.subjects
   }
