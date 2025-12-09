@@ -173,9 +173,10 @@ jobs:
       run: flutter build apk --debug
       working-directory: mobile
 
-    - name: Build Android APK (Release)
-      run: flutter build apk --release
-      working-directory: mobile
+    # Note: Release build requires signing configuration
+    # - name: Build Android APK (Release)
+    #   run: flutter build apk --release
+    #   working-directory: mobile
 
     - name: Upload APK artifacts
       uses: actions/upload-artifact@v4
@@ -183,7 +184,6 @@ jobs:
         name: android-apk
         path: |
           mobile/build/app/outputs/flutter-apk/app-debug.apk
-          mobile/build/app/outputs/flutter-apk/app-release.apk
         retention-days: 14
 
   build-and-push:
