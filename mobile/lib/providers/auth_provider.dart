@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/auth_service.dart';
+import '../features/export/failsafe_backup_service.dart';
 
 /// Auth state class
 class AuthState {
@@ -132,6 +133,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
       state = AuthState.authenticated(response.user);
+      // Update backup service with user info
+      FailsafeBackupService.instance.setCurrentUser(email: email);
     } on AuthException catch (e) {
       state = AuthState.error(e.message);
       rethrow;
@@ -156,6 +159,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         familyName: familyName,
       );
       state = AuthState.authenticated(response.user);
+      // Update backup service with user info
+      FailsafeBackupService.instance.setCurrentUser(email: email);
     } on AuthException catch (e) {
       state = AuthState.error(e.message);
       rethrow;
@@ -169,6 +174,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _authService.logout();
     state = AuthState.unauthenticated();
+    // Clear backup service user info
+    FailsafeBackupService.instance.clearCurrentUser();
   }
 
   /// Enable offline mode (skip account creation)
@@ -178,6 +185,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isLoading: false,
       isOfflineMode: true,
     );
+    // Clear backup service user info (offline mode)
+    FailsafeBackupService.instance.clearCurrentUser();
   }
 
   /// Refresh user info

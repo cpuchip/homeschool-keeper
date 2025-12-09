@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../core/database/database_service.dart';
 
 /// Dead man's switch - automatic failsafe backup service
@@ -20,24 +21,50 @@ class FailsafeBackupService {
 
   Timer? _backupTimer;
   bool _isRunning = false;
+  
+  /// Current user email for subfolder organization (null = offline mode)
+  String? _currentUserEmail;
 
   /// Backup interval (default: every 15 minutes)
   static const Duration backupInterval = Duration(minutes: 15);
 
-  /// Maximum number of backup files to keep
+  /// Maximum number of backup files to keep per user
   static const int maxBackupFiles = 5;
+
+  /// Set the current user for backup organization
+  void setCurrentUser({String? email}) {
+    _currentUserEmail = email;
+    debugPrint('FailsafeBackupService: User set to ${email ?? "offline"}');
+  }
+
+  /// Clear the current user (for logout)
+  void clearCurrentUser() {
+    _currentUserEmail = null;
+    debugPrint('FailsafeBackupService: User cleared (offline mode)');
+  }
+
+  /// Check if automatic backups are enabled
+  bool get isAutoBackupEnabled {
+    final db = DatabaseService.instance;
+    if (!db.isInitialized) return true; // Default to enabled
+    return db.familySettings.autoBackupEnabled;
+  }
 
   /// Start the automatic backup timer
   void start() {
     if (_isRunning) return;
     _isRunning = true;
 
-    // Perform immediate backup on start
-    _performBackup();
+    // Perform immediate backup on start (if enabled)
+    if (isAutoBackupEnabled) {
+      _performBackup();
+    }
 
     // Schedule periodic backups
     _backupTimer = Timer.periodic(backupInterval, (_) {
-      _performBackup();
+      if (isAutoBackupEnabled) {
+        _performBackup();
+      }
     });
 
     debugPrint('FailsafeBackupService: Started (interval: $backupInterval)');
@@ -127,10 +154,13 @@ class FailsafeBackupService {
   }
 
   /// Get the external backup directory (accessible to users)
+  /// Organizes backups by user:
+  /// - /HomeSchoolLogs/backups/offline/ (no account)
+  /// - /HomeSchoolLogs/backups/user_<email_hash>/ (logged in)
   Future<Directory?> _getBackupDirectory() async {
     try {
       // Try external storage first (more accessible to users)
-      Directory? backupDir;
+      String? basePath;
 
       if (Platform.isAndroid) {
         final externalDir = await getExternalStorageDirectory();
@@ -138,15 +168,17 @@ class FailsafeBackupService {
           // Navigate to a more accessible location
           // From: /storage/emulated/0/Android/data/com.example.app/files
           // To:   /storage/emulated/0/Documents/HomeSchoolLogs
-          final basePath = externalDir.path.split('/Android/data').first;
-          backupDir = Directory('$basePath/Documents/HomeSchoolLogs/backups');
+          basePath = externalDir.path.split('/Android/data').first;
+          basePath = '$basePath/Documents/HomeSchoolLogs/backups';
         }
       }
 
       // Fallback to app documents directory
-      backupDir ??= Directory(
-        '${(await getApplicationDocumentsDirectory()).path}/HomeSchoolLogs',
-      );
+      basePath ??= '${(await getApplicationDocumentsDirectory()).path}/HomeSchoolLogs/backups';
+
+      // Add user subfolder
+      final userFolder = _getUserFolderName();
+      final backupDir = Directory('$basePath/$userFolder');
 
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
@@ -157,6 +189,62 @@ class FailsafeBackupService {
       debugPrint('FailsafeBackupService: Error getting backup directory - $e');
       return null;
     }
+  }
+
+  /// Get the folder name for the current user
+  String _getUserFolderName() {
+    if (_currentUserEmail == null) {
+      return 'offline';
+    }
+    // Use a simple hash of the email for folder name
+    final hash = _currentUserEmail.hashCode.abs().toRadixString(16);
+    return 'user_$hash';
+  }
+
+  /// Get the root backup directory (for browsing)
+  Future<Directory?> getBackupRootDirectory() async {
+    try {
+      String? basePath;
+
+      if (Platform.isAndroid) {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          basePath = externalDir.path.split('/Android/data').first;
+          basePath = '$basePath/Documents/HomeSchoolLogs';
+        }
+      }
+
+      basePath ??= '${(await getApplicationDocumentsDirectory()).path}/HomeSchoolLogs';
+
+      final dir = Directory(basePath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      return dir;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Open the file browser at the backup location
+  Future<bool> openBackupFolder() async {
+    try {
+      final backupDir = await _getBackupDirectory();
+      if (backupDir == null) return false;
+
+      // Try to open the folder
+      final result = await OpenFilex.open(backupDir.path);
+      return result.type == ResultType.done;
+    } catch (e) {
+      debugPrint('FailsafeBackupService: Error opening backup folder - $e');
+      return false;
+    }
+  }
+
+  /// Get the backup directory path as a string (for display)
+  Future<String?> getBackupDirectoryPath() async {
+    final dir = await _getBackupDirectory();
+    return dir?.path;
   }
 
   /// Remove old backup files, keeping only the most recent ones

@@ -391,6 +391,10 @@ class FamilySettingsEntity extends HiveObject {
   @HiveField(8)
   late bool needsSync;
 
+  /// Backup settings
+  @HiveField(9)
+  late bool autoBackupEnabled; // Enable/disable automatic failsafe backups
+
   FamilySettingsEntity();
 
   factory FamilySettingsEntity.createDefault() {
@@ -405,7 +409,8 @@ class FamilySettingsEntity extends HiveObject {
       ..state = 'MO'
       ..createdAt = now
       ..updatedAt = now
-      ..needsSync = true;
+      ..needsSync = true
+      ..autoBackupEnabled = true; // Enabled by default
   }
 }
 

@@ -1,13 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/database/database_service.dart';
 import '../../../providers/auth_provider.dart';
+import '../../export/failsafe_backup_service.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _autoBackupEnabled = true;
+  String? _backupPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final db = DatabaseService.instance;
+    if (db.isInitialized) {
+      setState(() {
+        _autoBackupEnabled = db.familySettings.autoBackupEnabled;
+      });
+    }
+    final path = await FailsafeBackupService.instance.getBackupDirectoryPath();
+    if (mounted) {
+      setState(() {
+        _backupPath = path;
+      });
+    }
+  }
+
+  Future<void> _toggleAutoBackup(bool value) async {
+    final db = DatabaseService.instance;
+    if (!db.isInitialized) return;
+
+    db.familySettings.autoBackupEnabled = value;
+    await db.familySettings.save();
+    setState(() {
+      _autoBackupEnabled = value;
+    });
+  }
+
+  Future<void> _openBackupFolder() async {
+    final opened = await FailsafeBackupService.instance.openBackupFolder();
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open backup folder'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _backupNow() async {
+    final path = await FailsafeBackupService.instance.performBackupNow();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path != null ? 'Backup saved successfully' : 'Backup failed',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -126,6 +192,50 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () {
                           // TODO: Export data
                         },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Backup section
+                Text(
+                  'Backups',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        secondary: const Icon(Icons.backup_outlined),
+                        title: const Text('Automatic Backups'),
+                        subtitle: const Text('Save backups every 15 minutes'),
+                        value: _autoBackupEnabled,
+                        onChanged: _toggleAutoBackup,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.save_outlined),
+                        title: const Text('Backup Now'),
+                        subtitle: const Text('Create a manual backup'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _backupNow,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.folder_open_outlined),
+                        title: const Text('Open Backup Folder'),
+                        subtitle: Text(
+                          _backupPath ?? 'Loading...',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _openBackupFolder,
                       ),
                     ],
                   ),

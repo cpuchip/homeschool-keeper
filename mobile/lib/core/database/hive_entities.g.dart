@@ -250,13 +250,14 @@ class FamilySettingsEntityAdapter extends TypeAdapter<FamilySettingsEntity> {
       ..createdAt = fields[5] as DateTime
       ..updatedAt = fields[6] as DateTime
       ..remoteId = fields[7] as String?
-      ..needsSync = fields[8] as bool;
+      ..needsSync = fields[8] as bool
+      ..autoBackupEnabled = fields[9] as bool? ?? true; // Default to enabled for existing data
   }
 
   @override
   void write(BinaryWriter writer, FamilySettingsEntity obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -274,7 +275,9 @@ class FamilySettingsEntityAdapter extends TypeAdapter<FamilySettingsEntity> {
       ..writeByte(7)
       ..write(obj.remoteId)
       ..writeByte(8)
-      ..write(obj.needsSync);
+      ..write(obj.needsSync)
+      ..writeByte(9)
+      ..write(obj.autoBackupEnabled);
   }
 
   @override
