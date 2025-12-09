@@ -257,11 +257,11 @@ Our parent-controlled model avoids COPPA requirements:
 ### Running Locally
 
 ```bash
-# Backend
+# Backend (must be in ./backend folder)
 cd backend
-go run main.go
+go run .
 
-# Frontend (dev)
+# Frontend dev server (must be in ./backend/frontend folder)
 cd backend/frontend
 npm run dev
 
@@ -271,6 +271,9 @@ flutter run -d windows  # or chrome, android
 
 # MongoDB tunnel (for prod DB access)
 .\scripts\ssh-mongo-start.ps1
+
+# SSH to Dokploy server (for investigating logs/deployments)
+ssh cpuchip@172.17.100.31
 ```
 
 ### Before Committing
