@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/api/students_service.dart';
+import '../repositories/student_repository.dart';
 import '../models/student.dart';
 
 /// State for students list with loading and error states
@@ -31,24 +31,29 @@ class StudentsState {
       students.where((s) => s.active).toList();
 }
 
-/// Notifier for managing students state
+/// Notifier for managing students state (local-first)
 class StudentsNotifier extends StateNotifier<StudentsState> {
-  final StudentsService _service;
+  final StudentRepository _repository;
 
-  StudentsNotifier(this._service) : super(const StudentsState()) {
-    // Don't auto-load - let the UI trigger it
+  StudentsNotifier(this._repository) : super(const StudentsState()) {
+    // Load from local storage immediately
+    _loadFromLocal();
   }
 
-  /// Load all students from API
-  Future<void> loadStudents() async {
+  /// Load students from local Hive storage
+  void _loadFromLocal() {
     state = state.copyWith(isLoading: true, error: null);
-
     try {
-      final students = await _service.getAll();
+      final students = _repository.getAll();
       state = state.copyWith(students: students, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  /// Reload students from local storage
+  Future<void> loadStudents() async {
+    _loadFromLocal();
   }
 
   /// Create a new student
@@ -58,7 +63,7 @@ class StudentsNotifier extends StateNotifier<StudentsState> {
     String? avatarColor,
   }) async {
     try {
-      final student = await _service.create(
+      final student = await _repository.create(
         name: name,
         gradeLevel: gradeLevel,
         avatarColor: avatarColor,
@@ -82,7 +87,7 @@ class StudentsNotifier extends StateNotifier<StudentsState> {
     bool? active,
   }) async {
     try {
-      final updated = await _service.update(
+      final updated = await _repository.update(
         id,
         name: name,
         gradeLevel: gradeLevel,
@@ -104,7 +109,7 @@ class StudentsNotifier extends StateNotifier<StudentsState> {
   /// Delete a student
   Future<bool> deleteStudent(String id) async {
     try {
-      await _service.delete(id);
+      await _repository.delete(id);
       state = state.copyWith(
         students: state.students.where((s) => s.id != id).toList(),
       );
@@ -121,9 +126,14 @@ class StudentsNotifier extends StateNotifier<StudentsState> {
   }
 }
 
+/// Provider for local student repository
+final studentRepositoryProvider = Provider<StudentRepository>((ref) {
+  return StudentRepository();
+});
+
 /// Provider for students state
 final studentsProvider =
     StateNotifierProvider<StudentsNotifier, StudentsState>((ref) {
-  final service = ref.watch(studentsServiceProvider);
-  return StudentsNotifier(service);
-},);
+  final repository = ref.watch(studentRepositoryProvider);
+  return StudentsNotifier(repository);
+});

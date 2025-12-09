@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/api/stats_service.dart';
+import '../repositories/stats_service.dart';
 import '../models/stats.dart';
 
 /// State for family stats with loading and error states
@@ -37,31 +37,35 @@ class StatsState {
   int get studentCount => familyStats?.students.length ?? 0;
 }
 
-/// Notifier for managing stats state
+/// Notifier for managing stats state (local-first)
 class StatsNotifier extends StateNotifier<StatsState> {
-  final StatsService _service;
+  final LocalStatsService _service;
 
-  StatsNotifier(this._service) : super(const StatsState());
+  StatsNotifier(this._service) : super(const StatsState()) {
+    // Load stats from local storage immediately
+    _loadFromLocal();
+  }
 
-  /// Load family stats from API
-  Future<void> loadFamilyStats({String? schoolYear}) async {
+  /// Load stats from local Hive storage
+  void _loadFromLocal({String? schoolYear}) {
     state = state.copyWith(isLoading: true, error: null);
-
     try {
-      final stats = await _service.getFamilyStats(schoolYear: schoolYear);
+      final stats = _service.getFamilyStats(schoolYear: schoolYear);
       state = state.copyWith(familyStats: stats, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
+  /// Load family stats
+  Future<void> loadFamilyStats({String? schoolYear}) async {
+    _loadFromLocal(schoolYear: schoolYear);
+  }
+
   /// Get stats for a specific student
-  Future<StudentStats?> getStudentStats(
-    String studentId, {
-    String? schoolYear,
-  }) async {
+  StudentStats? getStudentStats(String studentId, {String? schoolYear}) {
     try {
-      return await _service.getStudentStats(studentId, schoolYear: schoolYear);
+      return _service.getStudentStats(studentId, schoolYear: schoolYear);
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return null;
@@ -77,11 +81,22 @@ class StatsNotifier extends StateNotifier<StatsState> {
   void clearStats() {
     state = state.copyWith(clearStats: true);
   }
+
+  /// Refresh stats
+  void refresh() {
+    _loadFromLocal();
+  }
 }
+
+/// Provider for local stats service
+final localStatsServiceProvider = Provider<LocalStatsService>((ref) {
+  return LocalStatsService();
+});
 
 /// Provider for stats state
 final statsProvider =
     StateNotifierProvider<StatsNotifier, StatsState>((ref) {
-  final service = ref.watch(statsServiceProvider);
+  final service = ref.watch(localStatsServiceProvider);
   return StatsNotifier(service);
-},);
+});
+

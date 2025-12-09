@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/api/logs_service.dart';
+import '../repositories/log_entry_repository.dart';
 import '../models/log_entry.dart';
 
 /// State for logs list with loading and error states
@@ -50,18 +50,17 @@ class LogsState {
       logs.fold(0, (sum, log) => sum + log.hours);
 }
 
-/// Notifier for managing logs state
+/// Notifier for managing logs state (local-first)
 class LogsNotifier extends StateNotifier<LogsState> {
-  final LogsService _service;
+  final LogEntryRepository _repository;
 
-  LogsNotifier(this._service) : super(const LogsState());
+  LogsNotifier(this._repository) : super(const LogsState()) {
+    // Load from local storage immediately
+    _loadFromLocal();
+  }
 
-  /// Load logs from API with optional filters
-  Future<void> loadLogs({
-    String? studentId,
-    String? subjectId,
-    String? schoolYear,
-  }) async {
+  /// Load logs from local Hive storage
+  void _loadFromLocal({String? studentId, String? subjectId}) {
     state = state.copyWith(
       isLoading: true,
       error: null,
@@ -70,17 +69,28 @@ class LogsNotifier extends StateNotifier<LogsState> {
       clearStudentFilter: studentId == null,
       clearSubjectFilter: subjectId == null,
     );
-
     try {
-      final logs = await _service.getAll(
-        studentId: studentId,
-        subjectId: subjectId,
-        schoolYear: schoolYear,
-      );
+      List<LogEntry> logs;
+      if (studentId != null) {
+        logs = _repository.getByStudent(studentId);
+      } else if (subjectId != null) {
+        logs = _repository.getBySubject(subjectId);
+      } else {
+        logs = _repository.getAll();
+      }
       state = state.copyWith(logs: logs, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  /// Load logs with optional filters
+  Future<void> loadLogs({
+    String? studentId,
+    String? subjectId,
+    String? schoolYear,
+  }) async {
+    _loadFromLocal(studentId: studentId, subjectId: subjectId);
   }
 
   /// Create a new log entry
@@ -94,17 +104,17 @@ class LogsNotifier extends StateNotifier<LogsState> {
     String? locationName,
   }) async {
     try {
-      final log = await _service.create(
+      final log = await _repository.create(
         studentId: studentId,
         subjectId: subjectId,
         date: date,
         hours: hours,
-        description: description,
+        description: description ?? '',
         locationType: locationType,
         locationName: locationName,
       );
       state = state.copyWith(
-        logs: [...state.logs, log],
+        logs: [log, ...state.logs], // Add to front (newest first)
       );
       return log;
     } catch (e) {
@@ -125,7 +135,7 @@ class LogsNotifier extends StateNotifier<LogsState> {
     String? locationName,
   }) async {
     try {
-      final updated = await _service.update(
+      final updated = await _repository.update(
         id,
         studentId: studentId,
         subjectId: subjectId,
@@ -150,7 +160,7 @@ class LogsNotifier extends StateNotifier<LogsState> {
   /// Delete a log entry
   Future<bool> deleteLog(String id) async {
     try {
-      await _service.delete(id);
+      await _repository.delete(id);
       state = state.copyWith(
         logs: state.logs.where((l) => l.id != id).toList(),
       );
@@ -167,9 +177,15 @@ class LogsNotifier extends StateNotifier<LogsState> {
   }
 }
 
+/// Provider for local log entry repository
+final logEntryRepositoryProvider = Provider<LogEntryRepository>((ref) {
+  return LogEntryRepository();
+});
+
 /// Provider for logs state
 final logsProvider =
     StateNotifierProvider<LogsNotifier, LogsState>((ref) {
-  final service = ref.watch(logsServiceProvider);
-  return LogsNotifier(service);
-},);
+  final repository = ref.watch(logEntryRepositoryProvider);
+  return LogsNotifier(repository);
+});
+

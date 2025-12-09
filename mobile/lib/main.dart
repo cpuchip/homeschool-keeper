@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'core/database/database_service.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
+import 'features/export/failsafe_backup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Hive for local storage
-  await Hive.initFlutter();
+  // Initialize local database (Hive)
+  await DatabaseService.instance.initialize();
+  
+  // Start failsafe backup service (dead man's switch)
+  FailsafeBackupService.instance.start();
   
   runApp(
     const ProviderScope(

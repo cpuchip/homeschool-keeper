@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/api/subjects_service.dart';
+import '../repositories/subject_repository.dart';
 import '../models/subject.dart';
 
 /// State for subjects list with loading and error states
@@ -39,22 +39,29 @@ class SubjectsState {
       activeSubjects.where((s) => s.type == SubjectType.elective).toList();
 }
 
-/// Notifier for managing subjects state
+/// Notifier for managing subjects state (local-first)
 class SubjectsNotifier extends StateNotifier<SubjectsState> {
-  final SubjectsService _service;
+  final SubjectRepository _repository;
 
-  SubjectsNotifier(this._service) : super(const SubjectsState());
+  SubjectsNotifier(this._repository) : super(const SubjectsState()) {
+    // Load from local storage immediately
+    _loadFromLocal();
+  }
 
-  /// Load all subjects from API
-  Future<void> loadSubjects() async {
+  /// Load subjects from local Hive storage
+  void _loadFromLocal() {
     state = state.copyWith(isLoading: true, error: null);
-
     try {
-      final subjects = await _service.getAll();
+      final subjects = _repository.getAll();
       state = state.copyWith(subjects: subjects, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  /// Reload subjects from local storage
+  Future<void> loadSubjects() async {
+    _loadFromLocal();
   }
 
   /// Create a new subject
@@ -65,7 +72,7 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
     double? targetHours,
   }) async {
     try {
-      final subject = await _service.create(
+      final subject = await _repository.create(
         name: name,
         type: type,
         color: color,
@@ -92,7 +99,7 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
     bool? active,
   }) async {
     try {
-      final updated = await _service.update(
+      final updated = await _repository.update(
         id,
         name: name,
         type: type,
@@ -116,7 +123,7 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
   /// Delete a subject
   Future<bool> deleteSubject(String id) async {
     try {
-      await _service.delete(id);
+      await _repository.delete(id);
       state = state.copyWith(
         subjects: state.subjects.where((s) => s.id != id).toList(),
       );
@@ -133,9 +140,14 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
   }
 }
 
+/// Provider for local subject repository
+final subjectRepositoryProvider = Provider<SubjectRepository>((ref) {
+  return SubjectRepository();
+});
+
 /// Provider for subjects state
 final subjectsProvider =
     StateNotifierProvider<SubjectsNotifier, SubjectsState>((ref) {
-  final service = ref.watch(subjectsServiceProvider);
-  return SubjectsNotifier(service);
-},);
+  final repository = ref.watch(subjectRepositoryProvider);
+  return SubjectsNotifier(repository);
+});
