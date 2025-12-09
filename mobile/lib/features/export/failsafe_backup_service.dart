@@ -145,7 +145,7 @@ class FailsafeBackupService {
 
       // Fallback to app documents directory
       backupDir ??= Directory(
-        '${(await getApplicationDocumentsDirectory()).path}/failsafe_backups',
+        '${(await getApplicationDocumentsDirectory()).path}/HomeSchoolLogs',
       );
 
       if (!await backupDir.exists()) {

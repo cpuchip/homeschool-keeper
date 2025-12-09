@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -47,6 +48,18 @@ func Load() *Config {
 	if cfg.MongoURI == "" {
 		cfg.MongoURI = buildMongoURI()
 	}
+
+	// Log loaded configuration (non-sensitive fields)
+	fmt.Println("📋 Configuration loaded:")
+	fmt.Printf("  PORT: %s\n", cfg.Port)
+	fmt.Printf("  MONGO_DB: %s\n", cfg.DBName)
+	fmt.Printf("  MONGODB_URI: %s\n", RedactMongoURI(cfg.MongoURI))
+	fmt.Printf("  DEV_MODE: %t\n", cfg.DevMode)
+	fmt.Printf("  JWT_ACCESS_EXPIRY: %s\n", cfg.JWTAccessExpiry)
+	fmt.Printf("  JWT_REFRESH_EXPIRY: %s\n", cfg.JWTRefreshExpiry)
+	fmt.Printf("  SESSION_SECRET: %s\n", maskSecret(cfg.SessionSecret))
+	fmt.Printf("  ENCRYPTION_MASTER_KEY: %s\n", maskSecret(cfg.EncryptionMasterKey))
+	fmt.Printf("  JWT_SECRET: %s\n", maskSecret(cfg.JWTSecret))
 
 	return cfg
 }
@@ -117,4 +130,12 @@ func RedactMongoURI(uri string) string {
 	}
 
 	return uri[:colonPos+1] + "****" + uri[atPos:]
+}
+
+// maskSecret returns a masked version of a secret for logging
+func maskSecret(secret string) string {
+	if secret == "" {
+		return "(not set)"
+	}
+	return "****"
 }

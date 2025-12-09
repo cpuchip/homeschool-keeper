@@ -250,6 +250,104 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
   return TokenStorage(storage);
 });
 
+/// Custom log interceptor that redacts sensitive data
+class SensitiveDataLogInterceptor extends Interceptor {
+  /// Fields that should be redacted from logs
+  static const _sensitiveFields = [
+    'password',
+    'newPassword',
+    'oldPassword',
+    'confirmPassword',
+    'accessToken',
+    'refreshToken',
+    'token',
+    'secret',
+    'apiKey',
+  ];
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    debugPrint('[API] *** Request ***');
+    debugPrint('[API] uri: ${options.uri}');
+    debugPrint('[API] method: ${options.method}');
+    debugPrint('[API] headers: ${_redactHeaders(options.headers)}');
+    if (options.data != null) {
+      debugPrint('[API] data: ${_redactData(options.data)}');
+    }
+    debugPrint('[API]');
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    debugPrint('[API] *** Response ***');
+    debugPrint('[API] uri: ${response.requestOptions.uri}');
+    debugPrint('[API] statusCode: ${response.statusCode}');
+    
+    // Only log response body if it's JSON, not HTML
+    final contentType = response.headers.value('content-type') ?? '';
+    if (contentType.contains('application/json')) {
+      debugPrint('[API] data: ${_redactData(response.data)}');
+    } else if (contentType.contains('text/html')) {
+      debugPrint('[API] data: [HTML content - ${response.data.toString().length} chars]');
+    } else {
+      debugPrint('[API] data: [$contentType - ${response.data.toString().length} chars]');
+    }
+    debugPrint('[API]');
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    debugPrint('[API] *** Error ***');
+    debugPrint('[API] uri: ${err.requestOptions.uri}');
+    debugPrint('[API] message: ${err.message}');
+    if (err.response != null) {
+      debugPrint('[API] statusCode: ${err.response?.statusCode}');
+    }
+    debugPrint('[API]');
+    handler.next(err);
+  }
+
+  /// Redact sensitive fields from headers
+  Map<String, dynamic> _redactHeaders(Map<String, dynamic> headers) {
+    final redacted = Map<String, dynamic>.from(headers);
+    if (redacted.containsKey('Authorization')) {
+      final auth = redacted['Authorization']?.toString() ?? '';
+      if (auth.startsWith('Bearer ')) {
+        redacted['Authorization'] = 'Bearer [REDACTED]';
+      }
+    }
+    return redacted;
+  }
+
+  /// Redact sensitive fields from request/response data
+  dynamic _redactData(dynamic data) {
+    if (data == null) return null;
+    
+    if (data is Map) {
+      final redacted = <String, dynamic>{};
+      for (final entry in data.entries) {
+        final key = entry.key.toString().toLowerCase();
+        if (_sensitiveFields.any((field) => key.contains(field.toLowerCase()))) {
+          redacted[entry.key.toString()] = '[REDACTED]';
+        } else if (entry.value is Map || entry.value is List) {
+          redacted[entry.key.toString()] = _redactData(entry.value);
+        } else {
+          redacted[entry.key.toString()] = entry.value;
+        }
+      }
+      return redacted;
+    }
+    
+    if (data is List) {
+      return data.map((item) => _redactData(item)).toList();
+    }
+    
+    return data;
+  }
+}
+
 final dioProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.watch(tokenStorageProvider);
 
@@ -270,14 +368,10 @@ final dioProvider = Provider<Dio>((ref) {
     JwtAuthInterceptor(dio, tokenStorage),
   );
 
-  // Add logging interceptor in debug mode
-  dio.interceptors.add(
-    LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (log) => debugPrint('[API] $log'),
-    ),
-  );
+  // Add logging interceptor in debug mode (with sensitive data redaction)
+  if (kDebugMode) {
+    dio.interceptors.add(SensitiveDataLogInterceptor());
+  }
 
   return dio;
 });

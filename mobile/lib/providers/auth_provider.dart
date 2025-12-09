@@ -11,6 +11,7 @@ class AuthState {
   final String? role;
   final bool onboardingComplete;
   final String? error;
+  final bool isOfflineMode; // True when using app without account
 
   const AuthState({
     this.isAuthenticated = false,
@@ -21,6 +22,7 @@ class AuthState {
     this.role,
     this.onboardingComplete = false,
     this.error,
+    this.isOfflineMode = false,
   });
 
   AuthState copyWith({
@@ -32,6 +34,7 @@ class AuthState {
     String? role,
     bool? onboardingComplete,
     String? error,
+    bool? isOfflineMode,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -42,8 +45,12 @@ class AuthState {
       role: role ?? this.role,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       error: error,
+      isOfflineMode: isOfflineMode ?? this.isOfflineMode,
     );
   }
+
+  /// Check if user can access the app (either authenticated or offline mode)
+  bool get canAccessApp => isAuthenticated || isOfflineMode;
 
   /// Create authenticated state from user info
   factory AuthState.authenticated(UserInfo user) {
@@ -55,6 +62,17 @@ class AuthState {
       familyId: user.familyId,
       role: user.role,
       onboardingComplete: user.onboardingComplete,
+      isOfflineMode: false,
+    );
+  }
+
+  /// Create offline mode state (no account needed)
+  factory AuthState.offlineMode() {
+    return const AuthState(
+      isAuthenticated: false,
+      isLoading: false,
+      isOfflineMode: true,
+      onboardingComplete: true, // Skip onboarding for offline mode
     );
   }
 
@@ -63,6 +81,7 @@ class AuthState {
     return const AuthState(
       isAuthenticated: false,
       isLoading: false,
+      isOfflineMode: false,
     );
   }
 
@@ -72,6 +91,7 @@ class AuthState {
       isAuthenticated: false,
       isLoading: false,
       error: message,
+      isOfflineMode: false,
     );
   }
 }
@@ -149,6 +169,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _authService.logout();
     state = AuthState.unauthenticated();
+  }
+
+  /// Enable offline mode (skip account creation)
+  void skipAccountForOfflineMode() {
+    state = const AuthState(
+      isAuthenticated: false,
+      isLoading: false,
+      isOfflineMode: true,
+    );
   }
 
   /// Refresh user info

@@ -17,14 +17,20 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/dashboard',
     redirect: (context, state) {
-      final isLoggedIn = authState.isAuthenticated;
+      // Allow access if authenticated OR in offline mode
+      final canAccessApp = authState.isAuthenticated || authState.isOfflineMode;
       final isAuthRoute = state.matchedLocation == '/login' || 
                           state.matchedLocation == '/register';
       
-      if (!isLoggedIn && !isAuthRoute) {
+      // Still loading auth state - don't redirect yet
+      if (authState.isLoading) {
+        return null;
+      }
+      
+      if (!canAccessApp && !isAuthRoute) {
         return '/login';
       }
-      if (isLoggedIn && isAuthRoute) {
+      if (canAccessApp && isAuthRoute) {
         return '/dashboard';
       }
       return null;

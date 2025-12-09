@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/database/database_service.dart';
 import 'core/router.dart';
@@ -7,6 +8,12 @@ import 'features/export/failsafe_backup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Lock to portrait mode for single-handed use
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   
   // Initialize local database (Hive)
   await DatabaseService.instance.initialize();
@@ -21,11 +28,40 @@ void main() async {
   );
 }
 
-class HomeschoolKeeperApp extends ConsumerWidget {
+class HomeschoolKeeperApp extends ConsumerStatefulWidget {
   const HomeschoolKeeperApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeschoolKeeperApp> createState() => _HomeschoolKeeperAppState();
+}
+
+class _HomeschoolKeeperAppState extends ConsumerState<HomeschoolKeeperApp> 
+    with WidgetsBindingObserver {
+  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Backup when app goes to background (paused) or is about to close (detached)
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      FailsafeBackupService.instance.performBackupNow();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     
     return MaterialApp.router(
