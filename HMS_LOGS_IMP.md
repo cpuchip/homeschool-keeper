@@ -635,6 +635,10 @@ FERPA applies to **educational agencies receiving federal funds**:
   - [x] Logs screen (uses logsProvider, grouped by date)
   - [x] Quick Log screen (uses logsProvider, studentsProvider, subjectsProvider)
   - [x] Settings screen (logout functionality)
+- [x] CI/CD: Flutter Android build in GitHub Actions
+  - [x] Flutter analyze, tests, debug APK build
+  - [x] APK artifacts uploaded (download from Actions)
+  - [ ] Release signing configuration (future)
 - [ ] Basic offline with Hive cache
 - [ ] Sync on reconnect
 
