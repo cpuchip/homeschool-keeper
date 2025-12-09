@@ -639,8 +639,35 @@ FERPA applies to **educational agencies receiving federal funds**:
   - [x] Flutter analyze, tests, debug APK build
   - [x] APK artifacts uploaded (download from Actions)
   - [ ] Release signing configuration (future)
-- [ ] Basic offline with Hive cache
-- [ ] Sync on reconnect
+
+### Offline-First Architecture (NEW - Dec 8, 2025)
+- [x] Hive database layer (core/database/)
+  - [x] Hive entities: StudentEntity, SubjectEntity, LogEntryEntity, FamilySettingsEntity, SyncMetaEntity
+  - [x] DatabaseService for initialization and box management
+  - [x] Generated adapters via hive_generator
+- [x] Local repositories (repositories/)
+  - [x] StudentRepository - full CRUD with sync tracking
+  - [x] SubjectRepository - full CRUD with sync tracking  
+  - [x] LogEntryRepository - full CRUD with sync tracking
+  - [x] LocalStatsService - calculate stats from local Hive data
+- [x] Providers updated to local-first
+  - [x] studentsProvider uses StudentRepository
+  - [x] subjectsProvider uses SubjectRepository
+  - [x] logsProvider uses LogEntryRepository
+  - [x] statsProvider uses LocalStatsService
+- [x] Export/Import feature (features/export/)
+  - [x] ExportImportService - JSON and CSV exports
+  - [x] JSON export for phone transfer/backup
+  - [x] CSV export for state submission
+  - [x] JSON import for data recovery
+- [x] Failsafe backup service (dead man's switch)
+  - [x] Auto-backup every 15 minutes to external storage
+  - [x] Keeps last 5 backups, cleans up older ones
+  - [x] Saves to /Documents/HomeSchoolLogs/backups/ (user accessible)
+- [x] Default subjects on first launch (Missouri core + common electives)
+- [x] App works fully offline - no account required!
+- [ ] Optional cloud sync (when user creates account)
+- [ ] Sync status indicator in UI
 
 ### Web Polish
 - [ ] Location management CRUD
