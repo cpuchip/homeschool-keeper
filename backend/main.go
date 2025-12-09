@@ -40,6 +40,23 @@ func main() {
 	// Initialize session handling
 	auth.InitSession(cfg.SessionSecret)
 
+	// Initialize JWT manager for mobile auth
+	var jwtManager *auth.JWTManager
+	if cfg.JWTSecret != "" {
+		accessExpiry, err := time.ParseDuration(cfg.JWTAccessExpiry)
+		if err != nil {
+			accessExpiry = 15 * time.Minute
+		}
+		refreshExpiry, err := time.ParseDuration(cfg.JWTRefreshExpiry)
+		if err != nil {
+			refreshExpiry = 7 * 24 * time.Hour // 7 days
+		}
+		jwtManager = auth.NewJWTManager(cfg.JWTSecret, accessExpiry, refreshExpiry)
+		log.Printf("JWT authentication enabled (access: %v, refresh: %v)", accessExpiry, refreshExpiry)
+	} else {
+		log.Printf("Warning: JWT_SECRET not set - mobile auth will be unavailable")
+	}
+
 	// Connect to MongoDB
 	mongoClient, err := db.Connect(cfg.MongoURI)
 	if err != nil {
@@ -144,6 +161,16 @@ func main() {
 		// Stats routes (authentication required)
 		api.HandleFunc("/v1/stats/student/{id}", auth.RequireAuthFunc(statsHandler.StudentStats)).Methods("GET")
 		api.HandleFunc("/v1/stats/family", auth.RequireAuthFunc(statsHandler.FamilyStats)).Methods("GET")
+
+		// Mobile auth routes (JWT-based, no cookies)
+		if jwtManager != nil {
+			mobileAuthHandler := handlers.NewMobileAuthHandler(repo.Users, repo.Families, repo.Subjects, jwtManager)
+			requireJWT := auth.RequireJWTFunc(jwtManager)
+			api.HandleFunc("/v1/mobile/auth/register", mobileAuthHandler.Register).Methods("POST")
+			api.HandleFunc("/v1/mobile/auth/login", mobileAuthHandler.Login).Methods("POST")
+			api.HandleFunc("/v1/mobile/auth/refresh", mobileAuthHandler.Refresh).Methods("POST")
+			api.HandleFunc("/v1/mobile/auth/me", requireJWT(mobileAuthHandler.Me)).Methods("GET")
+		}
 	}
 
 	// Serve SPA frontend

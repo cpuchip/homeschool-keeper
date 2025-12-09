@@ -4,8 +4,8 @@
 **Domain**: hmslogs.com  
 **Database**: hmslogs (MongoDB)  
 **Generated**: December 6, 2025  
-**Last Updated**: December 6, 2025  
-**Status**: Planning → Phase 1A Implementation  
+**Last Updated**: December 8, 2025  
+**Status**: Phase 1A Complete → Phase 1B Mobile  
 **Reference Project**: [ForKirk](C:\Users\cpuch\Documents\code\stuffleberry\forkirk)
 
 ---
@@ -243,15 +243,16 @@ FERPA applies to **educational agencies receiving federal funds**:
   - Add `testify` to go.mod
   - Create test MongoDB container helper (testutil package)
 
-- [ ] **1.1.2** Set up Vue/Vitest
+- [ ] **1.1.2** Set up Vue/Vitest *(Deferred - Playwright E2E covers critical paths)*
   - Configure vitest in `backend/frontend/`
   - Add vue-test-utils
   - Create test utilities for stores/components
 
-- [ ] **1.1.3** Set up Playwright E2E
+- [x] **1.1.3** Set up Playwright E2E *(Completed Dec 8, 2025)*
   - Install playwright in `backend/frontend/`
-  - Create basic E2E test structure
-  - Add E2E to CI pipeline (optional for Phase 1A)
+  - Create basic E2E test structure (15 smoke tests)
+  - Added test scripts: `npm run test:e2e`, `test:e2e:ui`, `test:e2e:headed`
+  - Tests cover: auth, onboarding, dashboard, logs, students, subjects, settings
 
 - [ ] **1.1.4** Set up Flutter tests *(Deferred to Phase 1B)*
   - Organize `mobile/test/` structure
@@ -619,10 +620,13 @@ FERPA applies to **educational agencies receiving federal funds**:
 ## Phase 1B: Mobile & Polish (After 1A)
 
 ### Mobile App
-- [ ] JWT auth implementation
-- [ ] API client with Dio
-- [ ] Riverpod providers
-- [ ] All screens wired to real data
+- [x] JWT auth implementation (backend: auth/jwt.go, handlers/mobile_auth.go)
+- [x] API client with Dio (mobile: lib/core/api/api_client.dart)
+- [x] Auth service (mobile: lib/core/api/auth_service.dart)
+- [x] Auth provider updated (mobile: lib/providers/auth_provider.dart)
+- [x] Login/Register screens wired to real API
+- [ ] Riverpod providers for data (students, subjects, logs, stats)
+- [ ] All remaining screens wired to real data
 - [ ] Basic offline with Hive cache
 - [ ] Sync on reconnect
 

@@ -98,3 +98,105 @@ func RequireRoles(roles ...string) func(http.Handler) http.Handler {
 		}))
 	}
 }
+
+// JWTContextKey is the context key for storing JWT claims
+const JWTContextKey contextKey = "jwt_claims"
+
+// RequireJWT is middleware that requires a valid JWT Bearer token.
+// Used for mobile API authentication.
+func RequireJWT(jwtManager *JWTManager) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				http.Error(w, "Authorization header required", http.StatusUnauthorized)
+				return
+			}
+
+			// Expect "Bearer <token>"
+			const bearerPrefix = "Bearer "
+			if len(authHeader) < len(bearerPrefix) || authHeader[:len(bearerPrefix)] != bearerPrefix {
+				http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
+				return
+			}
+
+			tokenString := authHeader[len(bearerPrefix):]
+			claims, err := jwtManager.ValidateAccessToken(tokenString)
+			if err != nil {
+				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+				return
+			}
+
+			// Convert claims to SessionData for compatibility with existing handlers
+			session := &SessionData{
+				UserID:   claims.UserID,
+				FamilyID: claims.FamilyID,
+				Email:    claims.Email,
+				Role:     claims.Role,
+			}
+
+			// Add both claims and session to context
+			ctx := context.WithValue(r.Context(), JWTContextKey, claims)
+			ctx = context.WithValue(ctx, UserContextKey, session)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// RequireJWTFunc is the http.HandlerFunc version of RequireJWT
+func RequireJWTFunc(jwtManager *JWTManager) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			RequireJWT(jwtManager)(http.HandlerFunc(next)).ServeHTTP(w, r)
+		}
+	}
+}
+
+// GetJWTClaimsFromContext retrieves JWT claims from the request context
+func GetJWTClaimsFromContext(ctx context.Context) *JWTClaims {
+	claims, ok := ctx.Value(JWTContextKey).(*JWTClaims)
+	if !ok {
+		return nil
+	}
+	return claims
+}
+
+// RequireEitherAuth is middleware that allows either session or JWT authentication
+// Useful for endpoints that need to work for both web and mobile
+func RequireEitherAuth(jwtManager *JWTManager) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Try JWT first (check Authorization header)
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				const bearerPrefix = "Bearer "
+				if len(authHeader) >= len(bearerPrefix) && authHeader[:len(bearerPrefix)] == bearerPrefix {
+					tokenString := authHeader[len(bearerPrefix):]
+					claims, err := jwtManager.ValidateAccessToken(tokenString)
+					if err == nil {
+						session := &SessionData{
+							UserID:   claims.UserID,
+							FamilyID: claims.FamilyID,
+							Email:    claims.Email,
+							Role:     claims.Role,
+						}
+						ctx := context.WithValue(r.Context(), JWTContextKey, claims)
+						ctx = context.WithValue(ctx, UserContextKey, session)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+				}
+			}
+
+			// Fall back to session auth (cookies)
+			session, err := GetSession(r)
+			if err != nil {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), UserContextKey, session)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}

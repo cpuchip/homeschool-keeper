@@ -7,7 +7,13 @@ class ApiConstants {
   
   static const Duration timeout = Duration(seconds: 30);
   
-  // Auth endpoints
+  // Mobile auth endpoints (JWT-based)
+  static const String mobileLogin = '/mobile/auth/login';
+  static const String mobileRegister = '/mobile/auth/register';
+  static const String mobileRefresh = '/mobile/auth/refresh';
+  static const String mobileMe = '/mobile/auth/me';
+  
+  // Legacy web auth endpoints (cookie-based, not used by mobile)
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String refresh = '/auth/refresh';
@@ -17,4 +23,6 @@ class ApiConstants {
   static const String subjects = '/subjects';
   static const String logs = '/logs';
   static const String yearlyRecords = '/yearly-records';
+  static const String stats = '/stats';
+  static const String onboarding = '/onboarding';
 }
