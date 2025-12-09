@@ -625,8 +625,16 @@ FERPA applies to **educational agencies receiving federal funds**:
 - [x] Auth service (mobile: lib/core/api/auth_service.dart)
 - [x] Auth provider updated (mobile: lib/providers/auth_provider.dart)
 - [x] Login/Register screens wired to real API
-- [ ] Riverpod providers for data (students, subjects, logs, stats)
-- [ ] All remaining screens wired to real data
+- [x] Riverpod providers for data (students, subjects, logs, stats)
+- [x] Freezed data models (student.dart, subject.dart, log_entry.dart, stats.dart)
+- [x] Data services (students_service.dart, subjects_service.dart, logs_service.dart, stats_service.dart)
+- [x] All screens wired to real data:
+  - [x] Dashboard screen (uses statsProvider, studentsProvider)
+  - [x] Students screen (uses studentsProvider, add/edit dialogs)
+  - [x] Subjects screen (uses subjectsProvider, add/edit dialogs)
+  - [x] Logs screen (uses logsProvider, grouped by date)
+  - [x] Quick Log screen (uses logsProvider, studentsProvider, subjectsProvider)
+  - [x] Settings screen (logout functionality)
 - [ ] Basic offline with Hive cache
 - [ ] Sync on reconnect
 

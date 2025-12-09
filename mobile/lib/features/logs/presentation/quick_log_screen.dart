@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../providers/providers.dart';
 
 class QuickLogScreen extends ConsumerStatefulWidget {
   const QuickLogScreen({super.key});
@@ -10,12 +11,27 @@ class QuickLogScreen extends ConsumerStatefulWidget {
 }
 
 class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
-  String? _selectedStudent;
-  String? _selectedSubject;
+  String? _selectedStudentId;
+  String? _selectedSubjectId;
   double _hours = 1.0;
   bool _isAtHome = true;
   final _notesController = TextEditingController();
-  bool _isLoading = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final studentsState = ref.read(studentsProvider);
+      if (studentsState.students.isEmpty && !studentsState.isLoading) {
+        ref.read(studentsProvider.notifier).loadStudents();
+      }
+      final subjectsState = ref.read(subjectsProvider);
+      if (subjectsState.subjects.isEmpty && !subjectsState.isLoading) {
+        ref.read(subjectsProvider.notifier).loadSubjects();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -24,40 +40,70 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    if (_selectedStudent == null || _selectedSubject == null) {
+    if (_selectedStudentId == null || _selectedSubjectId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a student and subject')),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSubmitting = true);
 
     try {
-      // TODO: Implement actual log creation API call
-      await Future.delayed(const Duration(milliseconds: 500));
+      final result = await ref.read(logsProvider.notifier).createLog(
+        studentId: _selectedStudentId!,
+        subjectId: _selectedSubjectId!,
+        date: DateTime.now(),
+        hours: _hours,
+        description: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+        locationType: _isAtHome ? 'home' : 'other',
+      );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Log entry created!')),
-        );
-        context.go('/dashboard');
+        if (result != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Log entry created!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          ref.read(statsProvider.notifier).loadFamilyStats();
+          context.go('/dashboard');
+        } else {
+          final error = ref.read(logsProvider).error;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to create log: ${error ?? "Unknown error"}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create log: $e')),
+          SnackBar(
+            content: Text('Failed to create log: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _isSubmitting = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final studentsState = ref.watch(studentsProvider);
+    final subjectsState = ref.watch(subjectsProvider);
+    final students = studentsState.activeStudents;
+    final subjects = subjectsState.activeSubjects;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quick Log'),
@@ -79,19 +125,29 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    // TODO: Replace with actual student list
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedStudent,
-                      decoration: const InputDecoration(
-                        hintText: 'Select a student',
+                    if (studentsState.isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (students.isEmpty)
+                      const Text(
+                        'No students yet. Add a student first.',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedStudentId,
+                        decoration: const InputDecoration(
+                          hintText: 'Select a student',
+                        ),
+                        items: students.map((student) {
+                          return DropdownMenuItem(
+                            value: student.id,
+                            child: Text(student.name),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedStudentId = value);
+                        },
                       ),
-                      items: const [
-                        DropdownMenuItem(value: '1', child: Text('Add a student first')),
-                      ],
-                      onChanged: (value) {
-                        setState(() => _selectedStudent = value);
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -110,29 +166,30 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    // TODO: Replace with actual subject list
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        'Reading',
-                        'Math',
-                        'Science',
-                        'Social Studies',
-                        'Language Arts',
-                      ].map((subject) {
-                        final isSelected = _selectedSubject == subject;
-                        return FilterChip(
-                          label: Text(subject),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedSubject = selected ? subject : null;
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
+                    if (subjectsState.isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (subjects.isEmpty)
+                      const Text(
+                        'No subjects yet. Add a subject first.',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: subjects.map((subject) {
+                          final isSelected = _selectedSubjectId == subject.id;
+                          return FilterChip(
+                            label: Text(subject.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedSubjectId = selected ? subject.id : null;
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
                   ],
                 ),
               ),
@@ -224,8 +281,8 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
 
             // Submit button
             FilledButton.icon(
-              onPressed: _isLoading ? null : _handleSubmit,
-              icon: _isLoading
+              onPressed: _isSubmitting ? null : _handleSubmit,
+              icon: _isSubmitting
                   ? const SizedBox(
                       height: 20,
                       width: 20,

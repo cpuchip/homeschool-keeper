@@ -20,9 +20,12 @@ class TokenStorage {
 
   TokenStorage(this._storage);
 
-  Future<String?> getAccessToken() => _storage.read(key: StorageKeys.accessToken);
-  Future<String?> getRefreshToken() => _storage.read(key: StorageKeys.refreshToken);
-  Future<String?> getTokenExpiry() => _storage.read(key: StorageKeys.tokenExpiry);
+  Future<String?> getAccessToken() =>
+      _storage.read(key: StorageKeys.accessToken);
+  Future<String?> getRefreshToken() =>
+      _storage.read(key: StorageKeys.refreshToken);
+  Future<String?> getTokenExpiry() =>
+      _storage.read(key: StorageKeys.tokenExpiry);
 
   Future<void> saveTokens({
     required String accessToken,
@@ -250,31 +253,39 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 final dioProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.watch(tokenStorageProvider);
 
-  final dio = Dio(BaseOptions(
-    baseUrl: ApiConstants.baseUrl,
-    connectTimeout: ApiConstants.timeout,
-    receiveTimeout: ApiConstants.timeout,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-  ));
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: ApiConstants.baseUrl,
+      connectTimeout: ApiConstants.timeout,
+      receiveTimeout: ApiConstants.timeout,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ),
+  );
 
   // Add JWT interceptor
-  dio.interceptors.add(JwtAuthInterceptor(dio, tokenStorage));
+  dio.interceptors.add(
+    JwtAuthInterceptor(dio, tokenStorage),
+  );
 
   // Add logging interceptor in debug mode
-  dio.interceptors.add(LogInterceptor(
-    requestBody: true,
-    responseBody: true,
-    logPrint: (log) => debugPrint('[API] $log'),
-  ),);
+  dio.interceptors.add(
+    LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      logPrint: (log) => debugPrint('[API] $log'),
+    ),
+  );
 
   return dio;
 });
 
-final apiClientProvider = Provider<ApiClient>((ref) {
-  final dio = ref.watch(dioProvider);
-  final tokenStorage = ref.watch(tokenStorageProvider);
-  return ApiClient(dio, tokenStorage);
-},);
+final apiClientProvider = Provider<ApiClient>(
+  (ref) {
+    final dio = ref.watch(dioProvider);
+    final tokenStorage = ref.watch(tokenStorageProvider);
+    return ApiClient(dio, tokenStorage);
+  },
+);
