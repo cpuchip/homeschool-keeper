@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, scaffolding ]
   pull_request:
     branches: [ main ]
 
@@ -122,6 +122,70 @@ jobs:
         # Stop the server
         kill $SERVER_PID 2>/dev/null || true
 
+  build-android:
+    runs-on: ubuntu-latest
+    name: Build Android App
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+
+    - name: Cache pub dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.pub-cache
+          mobile/.dart_tool
+        key: ${{ runner.os }}-pub-${{ hashFiles('mobile/pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pub-
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      working-directory: mobile
+
+    - name: Run Flutter analyze
+      run: flutter analyze
+      working-directory: mobile
+
+    - name: Run code generation (Freezed/JSON)
+      run: dart run build_runner build --delete-conflicting-outputs
+      working-directory: mobile
+
+    - name: Run Flutter tests
+      run: flutter test
+      working-directory: mobile
+
+    - name: Build Android APK (Debug)
+      run: flutter build apk --debug
+      working-directory: mobile
+
+    - name: Build Android APK (Release)
+      run: flutter build apk --release
+      working-directory: mobile
+
+    - name: Upload APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: |
+          mobile/build/app/outputs/flutter-apk/app-debug.apk
+          mobile/build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 14
+
   build-and-push:
     runs-on: ubuntu-latest
     needs: test
@@ -170,7 +234,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [test, build-and-push]
+    needs: [test, build-android, build-and-push]
     name: Deploy to Production
     if: github.ref == 'refs/heads/main'
     environment: production
