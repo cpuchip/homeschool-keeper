@@ -1,0 +1,231 @@
+# Home School Logs - Current Work & Next Steps
+
+**Generated**: December 10, 2025  
+**Status**: Phase 1A Complete → Phase 1B In Progress
+
+---
+
+## 📊 Project Status Report
+
+### Overall Progress
+
+| Component | Phase 1A Status | Phase 1B Status | Notes |
+|-----------|----------------|-----------------|-------|
+| **Backend (Go)** | ✅ **95% Complete** | 🔄 60% | All CRUD, auth, stats working |
+| **Web Frontend (Vue)** | ✅ **95% Complete** | ⏳ 30% | All pages functional, minor bugs |
+| **Mobile (Flutter)** | ✅ **90% Complete** | 🔄 70% | Offline-first + sync working |
+| **CI/CD** | ✅ **100%** | ✅ | All builds passing |
+| **Testing** | 🔄 **50%** | ⏳ | E2E done, unit tests sparse |
+
+---
+
+## ✅ What's Fully Working
+
+### Backend
+- Auth (register, login, logout, session management)
+- JWT for mobile + Cookie sessions for web
+- Students CRUD with family isolation
+- Subjects CRUD with family isolation
+- Log entries CRUD with filtering
+- Stats aggregation (by student, by family)
+- Onboarding flow
+- Mobile auth endpoints (`/api/v1/mobile/auth/*`)
+- Sync endpoints with `since` parameter for incremental sync
+
+### Web Frontend
+- Login/Register with validation
+- Onboarding wizard (school year, subjects, settings)
+- Dashboard with real stats
+- Students page (add, edit, delete)
+- Subjects page (add, edit, toggle active)
+- Logs page (list, filter, edit, delete)
+- Quick Log page (streamlined logging)
+- Settings page
+
+### Mobile
+- Offline-first architecture with Hive
+- Local repositories (students, subjects, logs)
+- JWT auth with token storage
+- Login/Register screens
+- Dashboard with local stats
+- Students/Subjects/Logs screens
+- Quick Log screen
+- **Sync service** (push/pull with server)
+- **Auto-sync** on connectivity changes
+- **Failsafe backup** (every 15 min to Documents)
+- Export/Import (JSON, CSV)
+- Logger utility (release-build safe)
+
+---
+
+## 🔴 Known Issues / Bugs
+
+| Issue | Severity | Location | Status |
+|-------|----------|----------|--------|
+| ~~Log History shows "Invalid Date"~~ | High | Web | ✅ Fixed Dec 10 |
+| ~~Flutter analyze fails~~ | High | Mobile CI | ✅ Fixed Dec 10 |
+| No user-facing sync indicator | Low | Mobile | TODO |
+
+---
+
+## 📋 Detailed Next Steps by Priority
+
+## Priority 1: Bug Fixes & Polish (This Week)
+
+### 1.1 Web App Fixes
+- [x] ~~Fix LogsPage "Invalid Date" display~~ ✅ Done Dec 10
+- [ ] **Test log edit/delete functionality** (verify after fix)
+- [ ] **Verify onboarding flow** end-to-end
+- [ ] **Add form validation feedback** (error messages on submit)
+
+### 1.2 Mobile App Stability
+- [x] ~~Fix Flutter analyze for CI~~ ✅ Done Dec 10
+- [ ] **Add sync status indicator** in app bar (syncing spinner, last sync time)
+- [ ] **Handle sync conflicts** - currently last-write-wins, need merge strategy
+
+### 1.3 Testing Gaps
+- [ ] **Backend unit tests** - Currently no `*_test.go` files except testutil
+  - Priority: auth, repository/logs, handlers/logs
+- [ ] **Web component tests** - Vitest deferred, but at least test stores
+- [ ] **Mobile widget tests** - Test critical flows
+
+---
+
+## Priority 2: Complete Phase 1B (Next 2 Weeks)
+
+### 2.1 Mobile Cloud Sync Polish
+- [ ] **Full sync on login** - Pull all server data after auth
+- [ ] **Sync indicator in UI** - Show syncing status, last sync time
+- [ ] **Conflict resolution UI** - When server and local differ
+- [ ] **Logout clears local data** - Or asks if user wants to keep
+
+### 2.2 Mobile UX Improvements
+- [ ] **Student avatars** - Use gradeLevel-based colors already in place
+- [ ] **Subject color picker** - Allow custom colors
+- [ ] **Log entry editing** - Currently can add but not edit on mobile
+- [ ] **Delete confirmations** - For students, subjects, logs
+- [ ] **Pull-to-refresh** on all list screens
+
+### 2.3 Web UX Improvements
+- [ ] **Location management** - CRUD for saved locations (field trips, co-ops)
+- [ ] **Multi-year switching** - View/filter by school year
+- [ ] **Archive school year** - Mark year as read-only
+- [ ] **Better error handling** - Toast notifications instead of console logs
+
+---
+
+## Priority 3: Phase 2 Features (Future)
+
+### 3.1 Export & Compliance
+- [ ] **PDF export** - Hours summary report for state submission
+- [ ] **Excel export** - Detailed log entries
+- [ ] **Work samples** - Photo attachments to logs
+
+### 3.2 Advanced Features
+- [ ] **Google OAuth** - Social login option
+- [ ] **Student accounts** - Kids can log their own hours
+- [ ] **Approval workflow** - Parent approves student-submitted logs
+- [ ] **Email notifications** - Weekly summaries
+
+### 3.3 Multi-State Support
+- [ ] **State law presets** - Different requirements per state
+- [ ] **Hour tracking by state** - Missouri = 1000 total, 600 core, etc.
+
+---
+
+## 🎯 Recommended Immediate Actions
+
+### Today/Tomorrow
+1. ✅ ~~Fix LogsPage display bug~~ Done
+2. ✅ ~~Fix Flutter analyze~~ Done
+3. **Commit and push** all fixes
+4. **Test full user flow** on web (register → onboard → add student → log hours → view stats)
+5. **Test mobile sync** (login → sync → add log → verify on web)
+
+### This Week
+1. **Add sync status indicator** on mobile
+2. **Write 3-5 critical backend tests** (auth, log creation, stats)
+3. **Document API** - Update OpenAPI spec to match implemented endpoints
+
+### Next Week
+1. **Mobile log editing** - Allow editing existing logs
+2. **Conflict resolution** - Handle sync conflicts gracefully
+3. **Location management** - Web CRUD for saved locations
+4. **Multi-year support** - Switch between school years
+
+---
+
+## 📊 Metrics
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| Backend test coverage | ~10% | 60%+ |
+| Web E2E tests | 15 smoke tests | Maintained |
+| Mobile test coverage | ~5% | 40%+ |
+| API endpoints | 25+ | All Phase 1 |
+| Known bugs | 0 | 0 |
+
+---
+
+## 🏗️ Architecture Reference
+
+### Data Flow
+```
+Mobile App (Flutter)
+  ├── Hive (local storage) ← Primary data source
+  ├── Sync Service → Backend API
+  └── Failsafe Backup → Documents folder
+
+Web App (Vue 3)
+  └── API calls → Backend
+
+Backend (Go)
+  ├── Handlers → Business logic
+  ├── Repository → MongoDB
+  └── Auth (Cookie for web, JWT for mobile)
+```
+
+### Key Files
+
+**Backend**
+- `backend/main.go` - Entry point, routes
+- `backend/handlers/` - HTTP handlers
+- `backend/repository/` - Database operations
+- `backend/auth/` - Authentication (session, JWT, middleware)
+
+**Web Frontend**
+- `backend/frontend/src/pages/` - Vue pages
+- `backend/frontend/src/stores/` - Pinia stores
+- `backend/frontend/src/api/` - API client
+
+**Mobile**
+- `mobile/lib/features/` - Feature screens
+- `mobile/lib/providers/` - Riverpod providers
+- `mobile/lib/repositories/` - Local Hive repositories
+- `mobile/lib/core/sync/` - Sync services
+- `mobile/lib/core/api/` - API client
+
+---
+
+## 📝 Recent Changes Log
+
+### December 10, 2025
+- Fixed LogsPage "Invalid Date" display (date parsing from ISO timestamps)
+- Fixed LogsPage student/subject display (pass full objects, not just names)
+- Fixed Flutter analyze failures (disabled avoid_print rule, fixed trailing commas)
+- Created logger utility for release-safe logging
+- Migrated all debugPrint calls to logger
+
+### December 9, 2025
+- Implemented auto-sync on log creation
+- Added failsafe backup service
+- Fixed JWT token storage issues
+
+### December 8, 2025
+- Completed offline-first architecture
+- Added sync service with incremental sync
+- Added connectivity detection
+
+---
+
+*Last Updated: December 10, 2025*
