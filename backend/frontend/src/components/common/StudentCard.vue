@@ -43,7 +43,7 @@ const emit = defineEmits<{
         size="sm"
       />
       
-      <div v-if="stats.bySubject.length > 0" class="mt-3 space-y-2">
+      <div v-if="stats.bySubject && stats.bySubject.length > 0" class="mt-3 space-y-2">
         <div
           v-for="subject in stats.bySubject.slice(0, 3)"
           :key="subject.subjectId"
