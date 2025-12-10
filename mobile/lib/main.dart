@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/database/database_service.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
+import 'core/sync/connectivity_service.dart';
 import 'features/export/failsafe_backup_service.dart';
 
 void main() async {
@@ -17,6 +18,9 @@ void main() async {
   
   // Initialize local database (Hive)
   await DatabaseService.instance.initialize();
+  
+  // Initialize connectivity monitoring
+  await ConnectivityService.instance.init();
   
   // Start failsafe backup service (dead man's switch)
   FailsafeBackupService.instance.start();

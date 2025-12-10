@@ -100,9 +100,10 @@ class AuthService {
         data: {'refreshToken': refreshToken},
       );
 
+      // Refresh endpoint only returns new access token, not new refresh token
       await _tokenStorage.saveTokens(
         accessToken: response.data['accessToken'],
-        refreshToken: response.data['refreshToken'],
+        refreshToken: refreshToken, // Keep existing refresh token
         expiresAt: response.data['expiresAt'],
       );
     } on DioException catch (e) {

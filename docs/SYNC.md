@@ -274,23 +274,17 @@ FirebaseMessaging.onBackgroundMessage((message) {
 - **Sync Type**: Incremental with `since` parameter
 - **Real-time**: None (user must refresh/navigate)
 
-### Phase 2: Auto-Push (v1.1) ⬅️ **Next step**
+### Phase 2: Auto-Push (v1.1) ✅ **COMPLETED**
 - **On data change**: Immediately push to server if online
 - **Offline indicator**: Show when not connected
-- **Debounced sync**: Coalesce rapid changes
+- **Debounced sync**: Coalesce rapid changes (2 second debounce)
 
-```dart
-// In student_repository.dart
-Future<Student> create({...}) async {
-  final entity = StudentEntity.create(...);
-  await _db.studentsBox.put(entity.id, entity);
-  
-  // Immediately push if online
-  await _syncService.pushSingleStudent(entity);
-  
-  return _toModel(entity);
-}
-```
+**Implementation Details (Dec 10, 2025)**:
+- `AutoSyncService`: Debounced auto-push with 2 second delay after changes
+- `ConnectivityService`: Monitors network state via connectivity_plus
+- `OfflineIndicator` widget: Shows amber banner when offline
+- All CRUD providers (logs, students, subjects) notify AutoSyncService on changes
+- Auto-sync when coming back online with pending changes
 
 ### Phase 3: Background Sync (v1.2)
 - **Push notifications**: FCM/APNs notify when data changes

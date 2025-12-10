@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/subject_repository.dart';
 import '../models/subject.dart';
+import '../core/sync/auto_sync_service.dart';
 
 /// State for subjects list with loading and error states
 class SubjectsState {
@@ -48,6 +49,15 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
     _loadFromLocal();
   }
 
+  /// Notify auto-sync service of data changes
+  void _notifyAutoSync() {
+    try {
+      AutoSyncService.instance.notifyDataChanged();
+    } catch (_) {
+      // AutoSync not initialized yet, ignore
+    }
+  }
+
   /// Load subjects from local Hive storage
   void _loadFromLocal() {
     state = state.copyWith(isLoading: true, error: null);
@@ -81,6 +91,10 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
       state = state.copyWith(
         subjects: [...state.subjects, subject],
       );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
+      
       return subject;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -113,6 +127,10 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
             .map((s) => s.id == id ? updated : s)
             .toList(),
       );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
+      
       return updated;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -127,6 +145,10 @@ class SubjectsNotifier extends StateNotifier<SubjectsState> {
       state = state.copyWith(
         subjects: state.subjects.where((s) => s.id != id).toList(),
       );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
+      
       return true;
     } catch (e) {
       state = state.copyWith(error: e.toString());

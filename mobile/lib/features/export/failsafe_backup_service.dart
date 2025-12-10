@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import '../../core/database/database_service.dart';
+import '../../core/utils/logger.dart';
 
 /// Dead man's switch - automatic failsafe backup service
 /// 
@@ -34,13 +34,13 @@ class FailsafeBackupService {
   /// Set the current user for backup organization
   void setCurrentUser({String? email}) {
     _currentUserEmail = email;
-    debugPrint('FailsafeBackupService: User set to ${email ?? "offline"}');
+    Log.backup.d('User set to ${email ?? "offline"}');
   }
 
   /// Clear the current user (for logout)
   void clearCurrentUser() {
     _currentUserEmail = null;
-    debugPrint('FailsafeBackupService: User cleared (offline mode)');
+    Log.backup.d('User cleared (offline mode)');
   }
 
   /// Check if automatic backups are enabled
@@ -67,7 +67,7 @@ class FailsafeBackupService {
       }
     });
 
-    debugPrint('FailsafeBackupService: Started (interval: $backupInterval)');
+    Log.backup.d('Started (interval: $backupInterval)');
   }
 
   /// Stop the automatic backup timer
@@ -75,7 +75,7 @@ class FailsafeBackupService {
     _backupTimer?.cancel();
     _backupTimer = null;
     _isRunning = false;
-    debugPrint('FailsafeBackupService: Stopped');
+    Log.backup.d('Stopped');
   }
 
   /// Perform a backup now (can be called manually)
@@ -88,7 +88,7 @@ class FailsafeBackupService {
     try {
       final db = DatabaseService.instance;
       if (!db.isInitialized) {
-        debugPrint('FailsafeBackupService: Database not initialized, skipping');
+        Log.backup.d('Database not initialized, skipping');
         return null;
       }
 
@@ -98,7 +98,7 @@ class FailsafeBackupService {
       // Get backup directory
       final backupDir = await _getBackupDirectory();
       if (backupDir == null) {
-        debugPrint('FailsafeBackupService: Could not get backup directory');
+        Log.backup.w('Could not get backup directory');
         return null;
       }
 
@@ -111,14 +111,14 @@ class FailsafeBackupService {
       final file = File(filePath);
       await file.writeAsString(jsonString);
 
-      debugPrint('FailsafeBackupService: Backup saved to $filePath');
+      Log.backup.d('Backup saved to $filePath');
 
       // Cleanup old backups
       await _cleanupOldBackups(backupDir);
 
       return filePath;
     } catch (e) {
-      debugPrint('FailsafeBackupService: Backup failed - $e');
+      Log.backup.e('Backup failed', e);
       return null;
     }
   }
@@ -186,7 +186,7 @@ class FailsafeBackupService {
 
       return backupDir;
     } catch (e) {
-      debugPrint('FailsafeBackupService: Error getting backup directory - $e');
+      Log.backup.e('Error getting backup directory', e);
       return null;
     }
   }
@@ -236,7 +236,7 @@ class FailsafeBackupService {
       final result = await OpenFilex.open(backupDir.path);
       return result.type == ResultType.done;
     } catch (e) {
-      debugPrint('FailsafeBackupService: Error opening backup folder - $e');
+      Log.backup.e('Error opening backup folder', e);
       return false;
     }
   }
@@ -267,10 +267,10 @@ class FailsafeBackupService {
       final filesToDelete = files.take(files.length - maxBackupFiles);
       for (final file in filesToDelete) {
         await file.delete();
-        debugPrint('FailsafeBackupService: Deleted old backup ${file.path}');
+        Log.backup.d('Deleted old backup ${file.path}');
       }
     } catch (e) {
-      debugPrint('FailsafeBackupService: Cleanup error - $e');
+      Log.backup.w('Cleanup error: $e');
     }
   }
 

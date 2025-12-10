@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/log_entry_repository.dart';
 import '../models/log_entry.dart';
+import '../core/sync/auto_sync_service.dart';
 
 /// State for logs list with loading and error states
 class LogsState {
@@ -57,6 +58,15 @@ class LogsNotifier extends StateNotifier<LogsState> {
   LogsNotifier(this._repository) : super(const LogsState()) {
     // Load from local storage immediately
     _loadFromLocal();
+  }
+
+  /// Notify auto-sync service of data changes
+  void _notifyAutoSync() {
+    try {
+      AutoSyncService.instance.notifyDataChanged();
+    } catch (_) {
+      // AutoSync not initialized yet, ignore
+    }
   }
 
   /// Load logs from local Hive storage
@@ -116,6 +126,10 @@ class LogsNotifier extends StateNotifier<LogsState> {
       state = state.copyWith(
         logs: [log, ...state.logs], // Add to front (newest first)
       );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
+      
       return log;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -150,6 +164,10 @@ class LogsNotifier extends StateNotifier<LogsState> {
             .map((l) => l.id == id ? updated : l)
             .toList(),
       );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
+      
       return updated;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -164,6 +182,9 @@ class LogsNotifier extends StateNotifier<LogsState> {
       state = state.copyWith(
         logs: state.logs.where((l) => l.id != id).toList(),
       );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
       return true;
     } catch (e) {
       state = state.copyWith(error: e.toString());

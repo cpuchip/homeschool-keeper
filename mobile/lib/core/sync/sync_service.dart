@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import '../api/api_client.dart';
 import '../constants.dart';
 import '../database/database_service.dart';
 import '../database/hive_entities.dart';
+import '../utils/logger.dart';
 
 /// Sync status for tracking progress
 enum SyncStatus {
@@ -86,31 +86,31 @@ class SyncService {
   /// Set [incremental] to true to only pull changes since last sync
   Future<SyncResult> performFullSync({bool incremental = true}) async {
     if (_status == SyncStatus.syncing) {
-      debugPrint('[Sync] Already syncing, skipping');
+      Log.sync.d('Already syncing, skipping');
       return SyncResult.error('Sync already in progress');
     }
 
-    debugPrint('[Sync] Starting ${incremental ? 'incremental' : 'full'} sync...');
+    Log.sync.d('Starting ${incremental ? 'incremental' : 'full'} sync...');
     _status = SyncStatus.syncing;
     _lastError = null;
 
     try {
       // Push local changes first
-      debugPrint('[Sync] Pushing local changes...');
+      Log.sync.d('Pushing local changes...');
       final pushResult = await _pushLocalChanges();
-      debugPrint('[Sync] Pushed: ${pushResult.students} students, ${pushResult.subjects} subjects, ${pushResult.logs} logs');
+      Log.sync.d('Pushed: ${pushResult.students} students, ${pushResult.subjects} subjects, ${pushResult.logs} logs');
       
       // Then pull server data (use last sync time for incremental sync)
       final since = incremental ? getLastSyncTime() : null;
-      debugPrint('[Sync] Pulling server data${since != null ? ' since $since' : ''}...');
+      Log.sync.d('Pulling server data${since != null ? ' since $since' : ''}...');
       final pullResult = await _pullServerData(since: since);
-      debugPrint('[Sync] Pulled: ${pullResult.students} students, ${pullResult.subjects} subjects, ${pullResult.logs} logs');
+      Log.sync.d('Pulled: ${pullResult.students} students, ${pullResult.subjects} subjects, ${pullResult.logs} logs');
 
       // Update sync metadata
       await _updateSyncMeta();
 
       _status = SyncStatus.success;
-      debugPrint('[Sync] ${incremental ? 'Incremental' : 'Full'} sync completed successfully!');
+      Log.sync.d('${incremental ? 'Incremental' : 'Full'} sync completed successfully!');
       
       return SyncResult.success(
         pushedStudents: pushResult.students,
@@ -123,8 +123,7 @@ class SyncService {
     } catch (e, stack) {
       _status = SyncStatus.error;
       _lastError = e.toString();
-      debugPrint('[Sync] Error: $e');
-      debugPrint('[Sync] Stack: $stack');
+      Log.sync.e('Sync error', e, stack);
       return SyncResult.error(e.toString());
     }
   }
@@ -202,7 +201,7 @@ class SyncService {
         }
         students++;
       } catch (e) {
-        debugPrint('Failed to sync student ${student.id}: $e');
+        Log.sync.w('Failed to sync student ${student.id}: $e');
         // Continue with other items, don't fail entire sync
       }
     }
@@ -221,7 +220,7 @@ class SyncService {
         }
         subjects++;
       } catch (e) {
-        debugPrint('Failed to sync subject ${subject.id}: $e');
+        Log.sync.w('Failed to sync subject ${subject.id}: $e');
       }
     }
 
@@ -239,7 +238,7 @@ class SyncService {
         }
         logs++;
       } catch (e) {
-        debugPrint('Failed to sync log ${log.id}: $e');
+        Log.sync.w('Failed to sync log ${log.id}: $e');
       }
     }
 
@@ -272,7 +271,7 @@ class SyncService {
         students++;
       }
     } catch (e) {
-      debugPrint('Failed to pull students: $e');
+      Log.sync.e('Failed to pull students', e);
       rethrow;
     }
 
@@ -289,7 +288,7 @@ class SyncService {
         subjects++;
       }
     } catch (e) {
-      debugPrint('Failed to pull subjects: $e');
+      Log.sync.e('Failed to pull subjects', e);
       rethrow;
     }
 
@@ -308,7 +307,7 @@ class SyncService {
         logs++;
       }
     } catch (e) {
-      debugPrint('Failed to pull logs: $e');
+      Log.sync.e('Failed to pull logs', e);
       rethrow;
     }
 
@@ -491,12 +490,10 @@ class SyncService {
     final studentRemoteId = _getRemoteStudentId(log.studentId);
     final subjectRemoteId = _getRemoteSubjectId(log.subjectId);
     
-    debugPrint('[Sync] Creating log ${log.id}:');
-    debugPrint('  studentId: ${log.studentId} -> remoteId: $studentRemoteId');
-    debugPrint('  subjectId: ${log.subjectId} -> remoteId: $subjectRemoteId');
+    Log.sync.d('Creating log ${log.id}: studentId=${log.studentId}->$studentRemoteId, subjectId=${log.subjectId}->$subjectRemoteId');
     
     if (studentRemoteId == null || subjectRemoteId == null) {
-      debugPrint('Cannot sync log: missing remote student or subject ID');
+      Log.sync.w('Cannot sync log: missing remote student or subject ID');
       return;
     }
     

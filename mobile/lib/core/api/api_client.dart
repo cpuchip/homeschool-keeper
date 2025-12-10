@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../constants.dart';
+import '../utils/logger.dart';
 
 /// Keys for storing tokens in secure storage
 class StorageKeys {
@@ -30,7 +31,7 @@ class TokenStorage {
   Future<void> init() async {
     if (_box == null || !(_box!.isOpen)) {
       _box = await Hive.openBox<String>(_boxName);
-      debugPrint('[TokenStorage] Initialized Hive box: $_boxName');
+      Log.storage.d('Initialized Hive box: $_boxName');
     }
   }
 
@@ -42,7 +43,7 @@ class TokenStorage {
     // Fall back to storage
     await init();
     _cachedAccessToken = _box!.get(StorageKeys.accessToken);
-    debugPrint('[TokenStorage] Read access token from storage: ${_cachedAccessToken != null ? "[present]" : "[null]"}');
+    Log.storage.d('Read access token from storage: ${_cachedAccessToken != null ? "[present]" : "[null]"}');
     return _cachedAccessToken;
   }
   
@@ -52,7 +53,7 @@ class TokenStorage {
     }
     await init();
     _cachedRefreshToken = _box!.get(StorageKeys.refreshToken);
-    debugPrint('[TokenStorage] Read refresh token from storage: ${_cachedRefreshToken != null ? "[present]" : "[null]"}');
+    Log.storage.d('Read refresh token from storage: ${_cachedRefreshToken != null ? "[present]" : "[null]"}');
     return _cachedRefreshToken;
   }
   
@@ -62,7 +63,7 @@ class TokenStorage {
     }
     await init();
     _cachedTokenExpiry = _box!.get(StorageKeys.tokenExpiry);
-    debugPrint('[TokenStorage] Read token expiry from storage: $_cachedTokenExpiry');
+    Log.storage.d('Read token expiry from storage: $_cachedTokenExpiry');
     return _cachedTokenExpiry;
   }
 
@@ -71,7 +72,7 @@ class TokenStorage {
     required String refreshToken,
     required int expiresAt,
   }) async {
-    debugPrint('[TokenStorage] Saving tokens to storage...');
+    Log.storage.d('Saving tokens to storage...');
     
     // Update cache immediately
     _cachedAccessToken = accessToken;
@@ -84,11 +85,11 @@ class TokenStorage {
     await _box!.put(StorageKeys.refreshToken, refreshToken);
     await _box!.put(StorageKeys.tokenExpiry, expiresAt.toString());
     
-    debugPrint('[TokenStorage] Tokens saved successfully');
+    Log.storage.d('Tokens saved successfully');
     
     // Verify write
     final verifyToken = _box!.get(StorageKeys.accessToken);
-    debugPrint('[TokenStorage] Verify write - token present: ${verifyToken != null}');
+    Log.storage.d('Verify write - token present: ${verifyToken != null}');
   }
 
   Future<void> saveUserInfo({
@@ -111,7 +112,7 @@ class TokenStorage {
     // Clear persistent storage
     await init();
     await _box!.clear();
-    debugPrint('[TokenStorage] All tokens cleared');
+    Log.storage.d('All tokens cleared');
   }
 
   Future<bool> isTokenExpired() async {
@@ -316,45 +317,42 @@ class SensitiveDataLogInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    debugPrint('[API] *** Request ***');
-    debugPrint('[API] uri: ${options.uri}');
-    debugPrint('[API] method: ${options.method}');
-    debugPrint('[API] headers: ${_redactHeaders(options.headers)}');
+    Log.api.d('*** Request ***');
+    Log.api.d('uri: ${options.uri}');
+    Log.api.d('method: ${options.method}');
+    Log.api.d('headers: ${_redactHeaders(options.headers)}');
     if (options.data != null) {
-      debugPrint('[API] data: ${_redactData(options.data)}');
+      Log.api.d('data: ${_redactData(options.data)}');
     }
-    debugPrint('[API]');
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    debugPrint('[API] *** Response ***');
-    debugPrint('[API] uri: ${response.requestOptions.uri}');
-    debugPrint('[API] statusCode: ${response.statusCode}');
+    Log.api.d('*** Response ***');
+    Log.api.d('uri: ${response.requestOptions.uri}');
+    Log.api.d('statusCode: ${response.statusCode}');
     
     // Only log response body if it's JSON, not HTML
     final contentType = response.headers.value('content-type') ?? '';
     if (contentType.contains('application/json')) {
-      debugPrint('[API] data: ${_redactData(response.data)}');
+      Log.api.d('data: ${_redactData(response.data)}');
     } else if (contentType.contains('text/html')) {
-      debugPrint('[API] data: [HTML content - ${response.data.toString().length} chars]');
+      Log.api.d('data: [HTML content - ${response.data.toString().length} chars]');
     } else {
-      debugPrint('[API] data: [$contentType - ${response.data.toString().length} chars]');
+      Log.api.d('data: [$contentType - ${response.data.toString().length} chars]');
     }
-    debugPrint('[API]');
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    debugPrint('[API] *** Error ***');
-    debugPrint('[API] uri: ${err.requestOptions.uri}');
-    debugPrint('[API] message: ${err.message}');
+    Log.api.e('*** API Error ***');
+    Log.api.e('uri: ${err.requestOptions.uri}');
+    Log.api.e('message: ${err.message}');
     if (err.response != null) {
-      debugPrint('[API] statusCode: ${err.response?.statusCode}');
+      Log.api.e('statusCode: ${err.response?.statusCode}');
     }
-    debugPrint('[API]');
     handler.next(err);
   }
 

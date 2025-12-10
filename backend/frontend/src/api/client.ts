@@ -16,10 +16,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     // If 401, redirect to login (session expired or not authenticated)
+    // Skip redirect for /me endpoint - that's used to check auth status on page load
     if (error.response?.status === 401) {
-      // Only redirect if not already on auth pages
-      if (!window.location.pathname.startsWith('/login') && 
-          !window.location.pathname.startsWith('/register')) {
+      const isAuthCheck = error.config?.url?.endsWith('/auth/me')
+      const isAuthPage = window.location.pathname.startsWith('/login') || 
+                         window.location.pathname.startsWith('/register')
+      
+      // Only redirect if not on auth pages and not checking auth status
+      if (!isAuthPage && !isAuthCheck) {
         window.location.href = '/login'
       }
     }
