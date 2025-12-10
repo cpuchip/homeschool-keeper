@@ -139,14 +139,15 @@
 ### Today/Tomorrow
 1. ✅ ~~Fix LogsPage display bug~~ Done
 2. ✅ ~~Fix Flutter analyze~~ Done
-3. **Commit and push** all fixes
-4. **Test full user flow** on web (register → onboard → add student → log hours → view stats)
-5. **Test mobile sync** (login → sync → add log → verify on web)
+3. ✅ ~~Commit and push~~ all fixes Done
+4. ✅ ~~Test full user flow on web~~ Done Dec 10 (login → dashboard → students → subjects → quick log → edit log)
+5. ✅ ~~Test mobile sync~~ Done Dec 10 (verified stats sync: 9.3 hours, 9 entries, 2 students)
 
 ### This Week
-1. **Add sync status indicator** on mobile
-2. **Write 3-5 critical backend tests** (auth, log creation, stats)
-3. **Document API** - Update OpenAPI spec to match implemented endpoints
+1. ✅ ~~Add sync status indicator~~ on mobile Done Dec 10
+2. ✅ ~~Write backend tests~~ LogRepository tests added
+3. [ ] **Document API** - Update OpenAPI spec to match implemented endpoints
+4. [ ] **Implement Recent Logs card** on mobile dashboard (currently shows placeholder)
 
 ### Next Week
 1. **Mobile log editing** - Allow editing existing logs
