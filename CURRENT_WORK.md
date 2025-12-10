@@ -64,7 +64,8 @@
 |-------|----------|----------|--------|
 | ~~Log History shows "Invalid Date"~~ | High | Web | ✅ Fixed Dec 10 |
 | ~~Flutter analyze fails~~ | High | Mobile CI | ✅ Fixed Dec 10 |
-| No user-facing sync indicator | Low | Mobile | TODO |
+| ~~Flutter test fails~~ | High | Mobile CI | ✅ Fixed Dec 10 |
+| ~~No user-facing sync indicator~~ | Low | Mobile | ✅ Fixed Dec 10 |
 
 ---
 
@@ -80,7 +81,7 @@
 
 ### 1.2 Mobile App Stability
 - [x] ~~Fix Flutter analyze for CI~~ ✅ Done Dec 10
-- [ ] **Add sync status indicator** in app bar (syncing spinner, last sync time)
+- [x] ~~Add sync status indicator~~ in app bar (syncing spinner, last sync time) ✅ Done Dec 10
 - [ ] **Handle sync conflicts** - currently last-write-wins, need merge strategy
 
 ### 1.3 Testing Gaps
@@ -95,7 +96,7 @@
 
 ### 2.1 Mobile Cloud Sync Polish
 - [ ] **Full sync on login** - Pull all server data after auth
-- [ ] **Sync indicator in UI** - Show syncing status, last sync time
+- [x] ~~Sync indicator in UI~~ - Show syncing status, last sync time ✅ Done Dec 10
 - [ ] **Conflict resolution UI** - When server and local differ
 - [ ] **Logout clears local data** - Or asks if user wants to keep
 
@@ -213,8 +214,11 @@ Backend (Go)
 - Fixed LogsPage "Invalid Date" display (date parsing from ISO timestamps)
 - Fixed LogsPage student/subject display (pass full objects, not just names)
 - Fixed Flutter analyze failures (disabled avoid_print rule, fixed trailing commas)
+- Fixed Flutter test failures (proper Hive init, mocked providers, skipped integration tests)
 - Created logger utility for release-safe logging
 - Migrated all debugPrint calls to logger
+- **Added sync status indicator** to Dashboard app bar (SyncButton widget)
+- Created SyncStatusIndicator and SyncButton widgets for reusable sync UI
 
 ### December 9, 2025
 - Implemented auto-sync on log creation
