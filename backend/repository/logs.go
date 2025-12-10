@@ -92,14 +92,15 @@ func (r *LogRepository) GetByID(ctx context.Context, familyID, id primitive.Obje
 
 // LogFilter contains filter options for querying logs
 type LogFilter struct {
-	StudentID  *primitive.ObjectID
-	SubjectID  *primitive.ObjectID
-	StartDate  *time.Time
-	EndDate    *time.Time
-	SchoolYear string
-	Status     string
-	Limit      int64
-	Skip       int64
+	StudentID    *primitive.ObjectID
+	SubjectID    *primitive.ObjectID
+	StartDate    *time.Time
+	EndDate      *time.Time
+	UpdatedSince *time.Time // For incremental sync - only return records updated after this time
+	SchoolYear   string
+	Status       string
+	Limit        int64
+	Skip         int64
 }
 
 // GetByFamily retrieves log entries for a family with optional filters
@@ -117,6 +118,11 @@ func (r *LogRepository) GetByFamily(ctx context.Context, familyID primitive.Obje
 	}
 	if filter.Status != "" {
 		query["status"] = filter.Status
+	}
+
+	// Incremental sync filter - only return records updated after this time
+	if filter.UpdatedSince != nil {
+		query["updatedAt"] = bson.M{"$gt": *filter.UpdatedSince}
 	}
 
 	// Date range filter

@@ -75,11 +75,20 @@ func (r *StudentRepository) GetByID(ctx context.Context, familyID, id primitive.
 
 // GetByFamily retrieves all active students for a family
 func (r *StudentRepository) GetByFamily(ctx context.Context, familyID primitive.ObjectID) ([]models.Student, error) {
+	return r.GetByFamilyUpdatedSince(ctx, familyID, nil)
+}
+
+// GetByFamilyUpdatedSince retrieves students updated after the given time (for incremental sync)
+func (r *StudentRepository) GetByFamilyUpdatedSince(ctx context.Context, familyID primitive.ObjectID, since *time.Time) ([]models.Student, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
-	cursor, err := r.coll.Find(ctx, bson.M{
+	query := bson.M{
 		"familyId": familyID,
 		"active":   true,
-	}, opts)
+	}
+	if since != nil {
+		query["updatedAt"] = bson.M{"$gt": *since}
+	}
+	cursor, err := r.coll.Find(ctx, query, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -83,13 +83,14 @@ class SyncService {
       : _db = db ?? DatabaseService.instance;
 
   /// Perform a full sync (push local changes, pull server data)
-  Future<SyncResult> performFullSync() async {
+  /// Set [incremental] to true to only pull changes since last sync
+  Future<SyncResult> performFullSync({bool incremental = true}) async {
     if (_status == SyncStatus.syncing) {
       debugPrint('[Sync] Already syncing, skipping');
       return SyncResult.error('Sync already in progress');
     }
 
-    debugPrint('[Sync] Starting full sync...');
+    debugPrint('[Sync] Starting ${incremental ? 'incremental' : 'full'} sync...');
     _status = SyncStatus.syncing;
     _lastError = null;
 
@@ -99,16 +100,17 @@ class SyncService {
       final pushResult = await _pushLocalChanges();
       debugPrint('[Sync] Pushed: ${pushResult.students} students, ${pushResult.subjects} subjects, ${pushResult.logs} logs');
       
-      // Then pull server data
-      debugPrint('[Sync] Pulling server data...');
-      final pullResult = await _pullServerData();
+      // Then pull server data (use last sync time for incremental sync)
+      final since = incremental ? getLastSyncTime() : null;
+      debugPrint('[Sync] Pulling server data${since != null ? ' since $since' : ''}...');
+      final pullResult = await _pullServerData(since: since);
       debugPrint('[Sync] Pulled: ${pullResult.students} students, ${pullResult.subjects} subjects, ${pullResult.logs} logs');
 
       // Update sync metadata
       await _updateSyncMeta();
 
       _status = SyncStatus.success;
-      debugPrint('[Sync] Full sync completed successfully!');
+      debugPrint('[Sync] ${incremental ? 'Incremental' : 'Full'} sync completed successfully!');
       
       return SyncResult.success(
         pushedStudents: pushResult.students,
@@ -245,14 +247,24 @@ class SyncService {
   }
 
   /// Pull server data and merge with local
-  Future<_PushPullCounts> _pullServerData() async {
+  /// Pull server data and merge with local
+  /// [since] - if provided, only pulls records updated after this time (incremental sync)
+  Future<_PushPullCounts> _pullServerData({DateTime? since}) async {
     int students = 0;
     int subjects = 0;
     int logs = 0;
 
+    // Build query params for incremental sync
+    final queryParams = since != null 
+        ? {'since': since.toUtc().toIso8601String()} 
+        : <String, String>{};
+
     // Pull students
     try {
-      final response = await _apiClient.get(ApiConstants.students);
+      final response = await _apiClient.get(
+        ApiConstants.students,
+        queryParameters: queryParams,
+      );
       final serverStudents = (response.data as List<dynamic>?) ?? [];
       
       for (final json in serverStudents) {
@@ -266,7 +278,10 @@ class SyncService {
 
     // Pull subjects
     try {
-      final response = await _apiClient.get(ApiConstants.subjects);
+      final response = await _apiClient.get(
+        ApiConstants.subjects,
+        queryParameters: queryParams,
+      );
       final serverSubjects = (response.data as List<dynamic>?) ?? [];
       
       for (final json in serverSubjects) {
@@ -280,7 +295,10 @@ class SyncService {
 
     // Pull logs
     try {
-      final response = await _apiClient.get(ApiConstants.logs);
+      final response = await _apiClient.get(
+        ApiConstants.logs,
+        queryParameters: queryParams,
+      );
       // Logs endpoint returns {logs: [...], total: N, page: N, limit: N}
       final data = response.data as Map<String, dynamic>?;
       final serverLogs = (data?['logs'] as List<dynamic>?) ?? [];

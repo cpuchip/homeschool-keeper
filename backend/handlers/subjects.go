@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/cpuchip/homeschool-keeper/backend/auth"
 	"github.com/cpuchip/homeschool-keeper/backend/models"
@@ -55,11 +56,19 @@ func (h *SubjectHandler) List(w http.ResponseWriter, r *http.Request) {
 	// Optional filter by type
 	subjectType := r.URL.Query().Get("type")
 
+	// Incremental sync filter - only return records updated after this time
+	var since *time.Time
+	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
+		if parsed, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+			since = &parsed
+		}
+	}
+
 	var subjects []models.Subject
 	if subjectType != "" {
 		subjects, err = h.subjects.GetByType(r.Context(), familyID, subjectType)
 	} else {
-		subjects, err = h.subjects.GetByFamily(r.Context(), familyID)
+		subjects, err = h.subjects.GetByFamilyUpdatedSince(r.Context(), familyID, since)
 	}
 
 	if err != nil {

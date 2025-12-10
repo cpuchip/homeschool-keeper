@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/auth_service.dart';
 import '../features/export/failsafe_backup_service.dart';
@@ -108,14 +109,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Check if user is already logged in
   Future<void> _checkAuthStatus() async {
     try {
+      debugPrint('[Auth] Checking auth status on startup...');
       final isLoggedIn = await _authService.isLoggedIn();
+      debugPrint('[Auth] isLoggedIn: $isLoggedIn');
       if (isLoggedIn) {
         final user = await _authService.getCurrentUser();
+        debugPrint('[Auth] User restored: ${user.email}');
         state = AuthState.authenticated(user);
       } else {
+        debugPrint('[Auth] No valid session found');
         state = AuthState.unauthenticated();
       }
     } catch (e) {
+      debugPrint('[Auth] Error checking auth status: $e');
       state = AuthState.unauthenticated();
     }
   }

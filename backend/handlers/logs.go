@@ -103,6 +103,13 @@ func (h *LogHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Incremental sync filter - only return records updated after this time
+	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
+		if since, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+			filter.UpdatedSince = &since
+		}
+	}
+
 	logs, err := h.logs.GetByFamily(r.Context(), familyID, filter)
 	if err != nil {
 		InternalError(w)

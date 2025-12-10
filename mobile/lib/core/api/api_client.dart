@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../constants.dart';
 
 /// Keys for storing tokens in secure storage
@@ -14,20 +14,25 @@ class StorageKeys {
   static const String familyId = 'family_id';
 }
 
-/// Token storage service using flutter_secure_storage
-/// Uses an in-memory cache to avoid race conditions where reads happen
-/// before async writes complete to secure storage.
+/// Token storage service using Hive for reliable cross-platform persistence.
+/// FlutterSecureStorage has issues on Windows where writes don't persist.
+/// Hive is more reliable and already used by the app for other data.
 class TokenStorage {
-  final FlutterSecureStorage _storage;
+  static const String _boxName = 'auth_tokens';
+  Box<String>? _box;
   
-  // In-memory cache to ensure tokens are available immediately after save
-  // This fixes a race condition on Windows where FlutterSecureStorage
-  // writes are async and reads can return null before write completes
+  // In-memory cache for performance
   String? _cachedAccessToken;
   String? _cachedRefreshToken;
   String? _cachedTokenExpiry;
 
-  TokenStorage(this._storage);
+  /// Initialize the Hive box. Call this before using any other methods.
+  Future<void> init() async {
+    if (_box == null || !(_box!.isOpen)) {
+      _box = await Hive.openBox<String>(_boxName);
+      debugPrint('[TokenStorage] Initialized Hive box: $_boxName');
+    }
+  }
 
   Future<String?> getAccessToken() async {
     // Return cached value first if available
@@ -35,7 +40,9 @@ class TokenStorage {
       return _cachedAccessToken;
     }
     // Fall back to storage
-    _cachedAccessToken = await _storage.read(key: StorageKeys.accessToken);
+    await init();
+    _cachedAccessToken = _box!.get(StorageKeys.accessToken);
+    debugPrint('[TokenStorage] Read access token from storage: ${_cachedAccessToken != null ? "[present]" : "[null]"}');
     return _cachedAccessToken;
   }
   
@@ -43,7 +50,9 @@ class TokenStorage {
     if (_cachedRefreshToken != null) {
       return _cachedRefreshToken;
     }
-    _cachedRefreshToken = await _storage.read(key: StorageKeys.refreshToken);
+    await init();
+    _cachedRefreshToken = _box!.get(StorageKeys.refreshToken);
+    debugPrint('[TokenStorage] Read refresh token from storage: ${_cachedRefreshToken != null ? "[present]" : "[null]"}');
     return _cachedRefreshToken;
   }
   
@@ -51,7 +60,9 @@ class TokenStorage {
     if (_cachedTokenExpiry != null) {
       return _cachedTokenExpiry;
     }
-    _cachedTokenExpiry = await _storage.read(key: StorageKeys.tokenExpiry);
+    await init();
+    _cachedTokenExpiry = _box!.get(StorageKeys.tokenExpiry);
+    debugPrint('[TokenStorage] Read token expiry from storage: $_cachedTokenExpiry');
     return _cachedTokenExpiry;
   }
 
@@ -60,17 +71,24 @@ class TokenStorage {
     required String refreshToken,
     required int expiresAt,
   }) async {
-    // Update cache immediately so tokens are available before async write completes
+    debugPrint('[TokenStorage] Saving tokens to storage...');
+    
+    // Update cache immediately
     _cachedAccessToken = accessToken;
     _cachedRefreshToken = refreshToken;
     _cachedTokenExpiry = expiresAt.toString();
     
-    // Also persist to secure storage for restart persistence
-    await Future.wait([
-      _storage.write(key: StorageKeys.accessToken, value: accessToken),
-      _storage.write(key: StorageKeys.refreshToken, value: refreshToken),
-      _storage.write(key: StorageKeys.tokenExpiry, value: expiresAt.toString()),
-    ]);
+    // Persist to Hive
+    await init();
+    await _box!.put(StorageKeys.accessToken, accessToken);
+    await _box!.put(StorageKeys.refreshToken, refreshToken);
+    await _box!.put(StorageKeys.tokenExpiry, expiresAt.toString());
+    
+    debugPrint('[TokenStorage] Tokens saved successfully');
+    
+    // Verify write
+    final verifyToken = _box!.get(StorageKeys.accessToken);
+    debugPrint('[TokenStorage] Verify write - token present: ${verifyToken != null}');
   }
 
   Future<void> saveUserInfo({
@@ -78,11 +96,10 @@ class TokenStorage {
     required String email,
     required String familyId,
   }) async {
-    await Future.wait([
-      _storage.write(key: StorageKeys.userId, value: userId),
-      _storage.write(key: StorageKeys.userEmail, value: email),
-      _storage.write(key: StorageKeys.familyId, value: familyId),
-    ]);
+    await init();
+    await _box!.put(StorageKeys.userId, userId);
+    await _box!.put(StorageKeys.userEmail, email);
+    await _box!.put(StorageKeys.familyId, familyId);
   }
 
   Future<void> clearAll() async {
@@ -92,14 +109,9 @@ class TokenStorage {
     _cachedTokenExpiry = null;
     
     // Clear persistent storage
-    await Future.wait([
-      _storage.delete(key: StorageKeys.accessToken),
-      _storage.delete(key: StorageKeys.refreshToken),
-      _storage.delete(key: StorageKeys.tokenExpiry),
-      _storage.delete(key: StorageKeys.userId),
-      _storage.delete(key: StorageKeys.userEmail),
-      _storage.delete(key: StorageKeys.familyId),
-    ]);
+    await init();
+    await _box!.clear();
+    debugPrint('[TokenStorage] All tokens cleared');
   }
 
   Future<bool> isTokenExpired() async {
@@ -281,13 +293,10 @@ class ApiClient {
 
 /// Providers
 
-final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
-  return const FlutterSecureStorage();
-});
-
+// TokenStorage is now a singleton that uses Hive for storage
+// No longer needs FlutterSecureStorage
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
-  final storage = ref.watch(secureStorageProvider);
-  return TokenStorage(storage);
+  return TokenStorage();
 });
 
 /// Custom log interceptor that redacts sensitive data

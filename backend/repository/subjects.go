@@ -75,14 +75,23 @@ func (r *SubjectRepository) GetByID(ctx context.Context, familyID, id primitive.
 
 // GetByFamily retrieves all active subjects for a family
 func (r *SubjectRepository) GetByFamily(ctx context.Context, familyID primitive.ObjectID) ([]models.Subject, error) {
+	return r.GetByFamilyUpdatedSince(ctx, familyID, nil)
+}
+
+// GetByFamilyUpdatedSince retrieves subjects updated after the given time (for incremental sync)
+func (r *SubjectRepository) GetByFamilyUpdatedSince(ctx context.Context, familyID primitive.ObjectID, since *time.Time) ([]models.Subject, error) {
 	opts := options.Find().SetSort(bson.D{
 		{Key: "sortOrder", Value: 1},
 		{Key: "name", Value: 1},
 	})
-	cursor, err := r.coll.Find(ctx, bson.M{
+	query := bson.M{
 		"familyId": familyID,
 		"active":   true,
-	}, opts)
+	}
+	if since != nil {
+		query["updatedAt"] = bson.M{"$gt": *since}
+	}
+	cursor, err := r.coll.Find(ctx, query, opts)
 	if err != nil {
 		return nil, err
 	}
