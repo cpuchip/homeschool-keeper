@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/database/database_service.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/sync_provider.dart';
 import '../../export/failsafe_backup_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -170,32 +171,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.cloud_sync_outlined),
-                        title: const Text('Sync'),
-                        subtitle: const Text('Last synced: Never'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.refresh),
-                          onPressed: () {
-                            // TODO: Sync now
-                          },
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.download_outlined),
-                        title: const Text('Export Data'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          // TODO: Export data
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                _DataSyncCard(),
                 const SizedBox(height: 24),
 
                 // Backup section
@@ -318,6 +294,110 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 32),
               ]),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Card for sync status and controls
+class _DataSyncCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final syncState = ref.watch(syncProvider);
+    
+    // Show different UI for offline mode
+    if (authState.isOfflineMode) {
+      return Card(
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.cloud_off_outlined),
+              title: const Text('Sync'),
+              subtitle: const Text('Sign in to sync across devices'),
+              trailing: OutlinedButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Sign In'),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: const Text('Export Data'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // TODO: Navigate to export screen
+              },
+            ),
+          ],
+        ),
+      );
+    }
+    
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(
+              syncState.isSyncing
+                  ? Icons.sync
+                  : syncState.hasError
+                      ? Icons.sync_problem
+                      : Icons.cloud_done_outlined,
+              color: syncState.hasError
+                  ? Theme.of(context).colorScheme.error
+                  : null,
+            ),
+            title: Text(syncState.isSyncing ? 'Syncing...' : 'Sync'),
+            subtitle: Text(
+              syncState.hasError
+                  ? 'Error: ${syncState.error}'
+                  : syncState.hasPendingChanges
+                      ? '${syncState.pendingChanges} changes pending • ${syncState.lastSyncText}'
+                      : 'Last synced: ${syncState.lastSyncText}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: syncState.isSyncing
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () async {
+                      final result = await ref
+                          .read(syncProvider.notifier)
+                          .performFullSync();
+                      
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result.success
+                                  ? 'Synced ${result.totalPulled} items'
+                                  : 'Sync failed: ${result.error}',
+                            ),
+                            backgroundColor: result.success
+                                ? null
+                                : Theme.of(context).colorScheme.error,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.download_outlined),
+            title: const Text('Export Data'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              // TODO: Navigate to export screen
+            },
           ),
         ],
       ),

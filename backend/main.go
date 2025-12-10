@@ -126,41 +126,48 @@ func main() {
 		statsHandler := handlers.NewStatsHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
 		onboardingHandler := handlers.NewOnboardingHandler(repo.Families, repo.Subjects, repo.Students)
 
+		// Create a unified auth wrapper that works for both web (cookies) and mobile (JWT)
+		// If JWT is configured, use RequireEitherAuthFunc; otherwise fallback to session-only
+		requireAuth := auth.RequireAuthFunc
+		if jwtManager != nil {
+			requireAuth = auth.RequireEitherAuthFunc(jwtManager)
+		}
+
 		// Auth routes (no authentication required)
 		api.HandleFunc("/v1/auth/register", authHandler.Register).Methods("POST")
 		api.HandleFunc("/v1/auth/login", authHandler.Login).Methods("POST")
 		api.HandleFunc("/v1/auth/logout", authHandler.Logout).Methods("POST")
-		api.HandleFunc("/v1/auth/me", auth.RequireAuthFunc(authHandler.Me)).Methods("GET")
+		api.HandleFunc("/v1/auth/me", requireAuth(authHandler.Me)).Methods("GET")
 
 		// Onboarding routes (authentication required)
 		api.HandleFunc("/v1/onboarding/subjects", onboardingHandler.GetDefaultSubjects).Methods("GET")
-		api.HandleFunc("/v1/onboarding/status", auth.RequireAuthFunc(onboardingHandler.GetStatus)).Methods("GET")
-		api.HandleFunc("/v1/onboarding/complete", auth.RequireAuthFunc(onboardingHandler.Complete)).Methods("POST")
+		api.HandleFunc("/v1/onboarding/status", requireAuth(onboardingHandler.GetStatus)).Methods("GET")
+		api.HandleFunc("/v1/onboarding/complete", requireAuth(onboardingHandler.Complete)).Methods("POST")
 
-		// Student routes (authentication required)
-		api.HandleFunc("/v1/students", auth.RequireAuthFunc(studentHandler.List)).Methods("GET")
-		api.HandleFunc("/v1/students", auth.RequireAuthFunc(studentHandler.Create)).Methods("POST")
-		api.HandleFunc("/v1/students/{id}", auth.RequireAuthFunc(studentHandler.Get)).Methods("GET")
-		api.HandleFunc("/v1/students/{id}", auth.RequireAuthFunc(studentHandler.Update)).Methods("PATCH")
-		api.HandleFunc("/v1/students/{id}", auth.RequireAuthFunc(studentHandler.Delete)).Methods("DELETE")
+		// Student routes (authentication required - works with both cookie and JWT)
+		api.HandleFunc("/v1/students", requireAuth(studentHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/students", requireAuth(studentHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/students/{id}", requireAuth(studentHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/students/{id}", requireAuth(studentHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/students/{id}", requireAuth(studentHandler.Delete)).Methods("DELETE")
 
-		// Subject routes (authentication required)
-		api.HandleFunc("/v1/subjects", auth.RequireAuthFunc(subjectHandler.List)).Methods("GET")
-		api.HandleFunc("/v1/subjects", auth.RequireAuthFunc(subjectHandler.Create)).Methods("POST")
-		api.HandleFunc("/v1/subjects/{id}", auth.RequireAuthFunc(subjectHandler.Get)).Methods("GET")
-		api.HandleFunc("/v1/subjects/{id}", auth.RequireAuthFunc(subjectHandler.Update)).Methods("PATCH")
-		api.HandleFunc("/v1/subjects/{id}", auth.RequireAuthFunc(subjectHandler.Delete)).Methods("DELETE")
+		// Subject routes (authentication required - works with both cookie and JWT)
+		api.HandleFunc("/v1/subjects", requireAuth(subjectHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/subjects", requireAuth(subjectHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/subjects/{id}", requireAuth(subjectHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/subjects/{id}", requireAuth(subjectHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/subjects/{id}", requireAuth(subjectHandler.Delete)).Methods("DELETE")
 
-		// Log routes (authentication required)
-		api.HandleFunc("/v1/logs", auth.RequireAuthFunc(logHandler.List)).Methods("GET")
-		api.HandleFunc("/v1/logs", auth.RequireAuthFunc(logHandler.Create)).Methods("POST")
-		api.HandleFunc("/v1/logs/{id}", auth.RequireAuthFunc(logHandler.Get)).Methods("GET")
-		api.HandleFunc("/v1/logs/{id}", auth.RequireAuthFunc(logHandler.Update)).Methods("PATCH")
-		api.HandleFunc("/v1/logs/{id}", auth.RequireAuthFunc(logHandler.Delete)).Methods("DELETE")
+		// Log routes (authentication required - works with both cookie and JWT)
+		api.HandleFunc("/v1/logs", requireAuth(logHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/logs", requireAuth(logHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/logs/{id}", requireAuth(logHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/logs/{id}", requireAuth(logHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/logs/{id}", requireAuth(logHandler.Delete)).Methods("DELETE")
 
-		// Stats routes (authentication required)
-		api.HandleFunc("/v1/stats/student/{id}", auth.RequireAuthFunc(statsHandler.StudentStats)).Methods("GET")
-		api.HandleFunc("/v1/stats/family", auth.RequireAuthFunc(statsHandler.FamilyStats)).Methods("GET")
+		// Stats routes (authentication required - works with both cookie and JWT)
+		api.HandleFunc("/v1/stats/student/{id}", requireAuth(statsHandler.StudentStats)).Methods("GET")
+		api.HandleFunc("/v1/stats/family", requireAuth(statsHandler.FamilyStats)).Methods("GET")
 
 		// Mobile auth routes (JWT-based, no cookies)
 		if jwtManager != nil {

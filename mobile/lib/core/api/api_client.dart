@@ -15,23 +15,57 @@ class StorageKeys {
 }
 
 /// Token storage service using flutter_secure_storage
+/// Uses an in-memory cache to avoid race conditions where reads happen
+/// before async writes complete to secure storage.
 class TokenStorage {
   final FlutterSecureStorage _storage;
+  
+  // In-memory cache to ensure tokens are available immediately after save
+  // This fixes a race condition on Windows where FlutterSecureStorage
+  // writes are async and reads can return null before write completes
+  String? _cachedAccessToken;
+  String? _cachedRefreshToken;
+  String? _cachedTokenExpiry;
 
   TokenStorage(this._storage);
 
-  Future<String?> getAccessToken() =>
-      _storage.read(key: StorageKeys.accessToken);
-  Future<String?> getRefreshToken() =>
-      _storage.read(key: StorageKeys.refreshToken);
-  Future<String?> getTokenExpiry() =>
-      _storage.read(key: StorageKeys.tokenExpiry);
+  Future<String?> getAccessToken() async {
+    // Return cached value first if available
+    if (_cachedAccessToken != null) {
+      return _cachedAccessToken;
+    }
+    // Fall back to storage
+    _cachedAccessToken = await _storage.read(key: StorageKeys.accessToken);
+    return _cachedAccessToken;
+  }
+  
+  Future<String?> getRefreshToken() async {
+    if (_cachedRefreshToken != null) {
+      return _cachedRefreshToken;
+    }
+    _cachedRefreshToken = await _storage.read(key: StorageKeys.refreshToken);
+    return _cachedRefreshToken;
+  }
+  
+  Future<String?> getTokenExpiry() async {
+    if (_cachedTokenExpiry != null) {
+      return _cachedTokenExpiry;
+    }
+    _cachedTokenExpiry = await _storage.read(key: StorageKeys.tokenExpiry);
+    return _cachedTokenExpiry;
+  }
 
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
     required int expiresAt,
   }) async {
+    // Update cache immediately so tokens are available before async write completes
+    _cachedAccessToken = accessToken;
+    _cachedRefreshToken = refreshToken;
+    _cachedTokenExpiry = expiresAt.toString();
+    
+    // Also persist to secure storage for restart persistence
     await Future.wait([
       _storage.write(key: StorageKeys.accessToken, value: accessToken),
       _storage.write(key: StorageKeys.refreshToken, value: refreshToken),
@@ -52,6 +86,12 @@ class TokenStorage {
   }
 
   Future<void> clearAll() async {
+    // Clear cache
+    _cachedAccessToken = null;
+    _cachedRefreshToken = null;
+    _cachedTokenExpiry = null;
+    
+    // Clear persistent storage
     await Future.wait([
       _storage.delete(key: StorageKeys.accessToken),
       _storage.delete(key: StorageKeys.refreshToken),

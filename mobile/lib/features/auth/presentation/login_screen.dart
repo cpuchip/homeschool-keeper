@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/sync_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -36,6 +37,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
 
       if (mounted) {
+        // Trigger background sync after successful login
+        // Don't await - let it run in background
+        ref.read(syncProvider.notifier).performFullSync();
+        
         // Check if user needs onboarding
         final authState = ref.read(authStateProvider);
         if (authState.onboardingComplete) {

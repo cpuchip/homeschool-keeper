@@ -200,3 +200,12 @@ func RequireEitherAuth(jwtManager *JWTManager) func(http.Handler) http.Handler {
 		})
 	}
 }
+
+// RequireEitherAuthFunc is the http.HandlerFunc version of RequireEitherAuth
+func RequireEitherAuthFunc(jwtManager *JWTManager) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			RequireEitherAuth(jwtManager)(http.HandlerFunc(next)).ServeHTTP(w, r)
+		}
+	}
+}

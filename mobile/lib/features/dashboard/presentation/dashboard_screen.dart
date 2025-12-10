@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/logs_provider.dart';
 import '../../../providers/stats_provider.dart';
 import '../../../providers/students_provider.dart';
+import '../../../providers/sync_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -13,6 +15,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  bool _initialSyncDone = false;
+  
   @override
   void initState() {
     super.initState();
@@ -23,6 +27,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _loadData() async {
+    // Sync with server if user is authenticated (not in offline mode)
+    final authState = ref.read(authStateProvider);
+    if (authState.isAuthenticated && !_initialSyncDone) {
+      _initialSyncDone = true;
+      // Don't await - let sync run in background
+      ref.read(syncProvider.notifier).performFullSync();
+    }
+    
     await Future.wait([
       ref.read(statsProvider.notifier).loadFamilyStats(),
       ref.read(studentsProvider.notifier).loadStudents(),
