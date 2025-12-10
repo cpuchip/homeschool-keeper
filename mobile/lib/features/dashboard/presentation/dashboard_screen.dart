@@ -6,6 +6,7 @@ import '../../../providers/logs_provider.dart';
 import '../../../providers/stats_provider.dart';
 import '../../../providers/students_provider.dart';
 import '../../../providers/sync_provider.dart';
+import '../../common/sync_status_indicator.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -56,6 +57,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverAppBar.large(
               title: const Text('Dashboard'),
               actions: [
+                // Sync status button
+                const SyncButton(),
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined),
                   onPressed: () {
