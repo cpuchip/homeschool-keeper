@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/logs_provider.dart';
 import '../../../providers/stats_provider.dart';
 import '../../../providers/students_provider.dart';
+import '../../../providers/subjects_provider.dart';
 import '../../../providers/sync_provider.dart';
 import '../../common/sync_status_indicator.dart';
 
@@ -300,11 +302,18 @@ class _HourStat extends StatelessWidget {
   }
 }
 
-class _RecentLogsCard extends StatelessWidget {
+class _RecentLogsCard extends ConsumerWidget {
   const _RecentLogsCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsState = ref.watch(logsProvider);
+    final studentsState = ref.watch(studentsProvider);
+    final subjectsState = ref.watch(subjectsProvider);
+    
+    // Get 5 most recent logs
+    final recentLogs = logsState.sortedByDate.take(5).toList();
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -327,34 +336,147 @@ class _RecentLogsCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Center(
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.history,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'No logs yet',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+            const SizedBox(height: 12),
+            if (logsState.isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (recentLogs.isEmpty)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Start by creating your first log entry',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 8),
+                    Text(
+                      'No logs yet',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Start by creating your first log entry',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...recentLogs.map((log) {
+                final student = studentsState.students
+                    .where((s) => s.id == log.studentId)
+                    .firstOrNull;
+                final subject = subjectsState.subjects
+                    .where((s) => s.id == log.subjectId)
+                    .firstOrNull;
+                    
+                return _RecentLogItem(
+                  log: log,
+                  studentName: student?.name ?? 'Unknown',
+                  subjectName: subject?.name ?? 'Unknown',
+                  subjectColor: subject?.color ?? '#3B82F6',
+                );
+              }),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A compact log item for the recent logs list
+class _RecentLogItem extends StatelessWidget {
+  final dynamic log;
+  final String studentName;
+  final String subjectName;
+  final String subjectColor;
+
+  const _RecentLogItem({
+    required this.log,
+    required this.studentName,
+    required this.subjectName,
+    required this.subjectColor,
+  });
+
+  Color _parseColor(String hex) {
+    try {
+      return Color(int.parse(hex.replaceFirst('#', ''), radix: 16) | 0xFF000000);
+    } catch (_) {
+      return Colors.blue;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _parseColor(subjectColor);
+    final dateFormat = DateFormat('MMM d');
+    final hoursText = log.hours == 1 ? '1h' : '${log.hours}h';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          // Color indicator
+          Container(
+            width: 4,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Subject and student
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subjectName,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  studentName,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          // Hours and date
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                hoursText,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              Text(
+                dateFormat.format(log.date),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

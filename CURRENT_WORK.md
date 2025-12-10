@@ -103,7 +103,7 @@
 ### 2.2 Mobile UX Improvements
 - [ ] **Student avatars** - Use gradeLevel-based colors already in place
 - [ ] **Subject color picker** - Allow custom colors
-- [ ] **Log entry editing** - Currently can add but not edit on mobile
+- [x] ~~Log entry editing~~ ✅ Done Dec 10 - Edit dialog added in logs_screen.dart
 - [ ] **Delete confirmations** - For students, subjects, logs
 - [ ] **Pull-to-refresh** on all list screens
 
@@ -146,14 +146,15 @@
 ### This Week
 1. ✅ ~~Add sync status indicator~~ on mobile Done Dec 10
 2. ✅ ~~Write backend tests~~ LogRepository tests added
-3. [ ] **Document API** - Update OpenAPI spec to match implemented endpoints
-4. [ ] **Implement Recent Logs card** on mobile dashboard (currently shows placeholder)
+3. ✅ ~~Document API~~ Updated 14-api-contracts.md with mobile auth & sync params Dec 10
+4. ✅ ~~Implement Recent Logs card~~ on mobile dashboard Dec 10
+5. ✅ ~~Mobile log editing~~ Added edit dialog in logs_screen.dart Dec 10
 
 ### Next Week
-1. **Mobile log editing** - Allow editing existing logs
-2. **Conflict resolution** - Handle sync conflicts gracefully
-3. **Location management** - Web CRUD for saved locations
-4. **Multi-year support** - Switch between school years
+1. **Conflict resolution** - Handle sync conflicts gracefully
+2. **Location management** - Web CRUD for saved locations
+3. **Multi-year support** - Switch between school years
+4. **Pull-to-refresh** on mobile list screens
 
 ---
 

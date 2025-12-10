@@ -82,6 +82,85 @@ Use this as reference for all three agents.
 
 ---
 
+### Mobile Auth (JWT-based)
+
+Mobile apps use JWT tokens instead of cookies. These endpoints are at `/mobile/auth/*`.
+
+#### POST /mobile/auth/register
+```json
+// Request
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!",
+  "name": "John Parent",
+  "familyName": "Smith Family"
+}
+
+// Response 201
+{
+  "user": { /* user object */ },
+  "family": { /* family object */ },
+  "accessToken": "eyJhbG...",
+  "refreshToken": "eyJhbG..."
+}
+```
+
+#### POST /mobile/auth/login
+```json
+// Request
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+
+// Response 200
+{
+  "user": { /* user object */ },
+  "family": { /* family object */ },
+  "accessToken": "eyJhbG...",
+  "refreshToken": "eyJhbG..."
+}
+```
+
+#### POST /mobile/auth/refresh
+```json
+// Request
+{
+  "refreshToken": "eyJhbG..."
+}
+
+// Response 200
+{
+  "accessToken": "eyJhbG...",
+  "refreshToken": "eyJhbG..."
+}
+```
+
+#### GET /mobile/auth/me
+```json
+// Headers: Authorization: Bearer <accessToken>
+
+// Response 200
+{
+  "user": { /* user object */ },
+  "family": { /* family object */ }
+}
+```
+
+---
+
+### Incremental Sync
+
+All list endpoints support incremental sync using the `since` query parameter:
+
+- `since` - ISO 8601 timestamp to fetch records updated after this time
+
+Example: `GET /v1/students?since=2025-12-10T10:30:00Z`
+
+This returns only records with `updatedAt > since`, useful for mobile sync.
+
+---
+
 ### Organization
 
 #### GET /organization
@@ -118,6 +197,9 @@ Use this as reference for all three agents.
 ### Students
 
 #### GET /students
+Query params:
+- `since` (optional, ISO timestamp for incremental sync)
+
 ```json
 // Response 200
 {
@@ -191,6 +273,9 @@ Use this as reference for all three agents.
 ### Subjects
 
 #### GET /subjects
+Query params:
+- `since` (optional, ISO timestamp for incremental sync)
+
 ```json
 // Response 200
 {
@@ -237,6 +322,7 @@ Query params:
 - `startDate` (optional, ISO date)
 - `endDate` (optional, ISO date)
 - `status` (optional: pending, approved)
+- `since` (optional, ISO timestamp for incremental sync)
 - `page` (default: 1)
 - `limit` (default: 50, max: 100)
 

@@ -208,7 +208,9 @@ class _LogCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 PopupMenuButton<String>(
                   onSelected: (value) async {
-                    if (value == 'delete') {
+                    if (value == 'edit') {
+                      _showEditDialog(context, ref, log, studentName, subjectName);
+                    } else if (value == 'delete') {
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
@@ -267,6 +269,100 @@ class _LogCard extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditDialog(
+    BuildContext context,
+    WidgetRef ref,
+    LogEntry log,
+    String studentName,
+    String subjectName,
+  ) {
+    final hoursController = TextEditingController(text: log.hours.toString());
+    final descriptionController = TextEditingController(text: log.description);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Log Entry'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Info display (read-only)
+              Text(
+                '$subjectName • $studentName',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              Text(
+                DateFormat('MMMM d, yyyy').format(log.date),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Hours input
+              TextField(
+                controller: hoursController,
+                decoration: const InputDecoration(
+                  labelText: 'Hours',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 16),
+              
+              // Description input
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final hours = double.tryParse(hoursController.text);
+              if (hours == null || hours <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a valid number of hours')),
+                );
+                return;
+              }
+              
+              Navigator.pop(context);
+              
+              final result = await ref.read(logsProvider.notifier).updateLog(
+                log.id,
+                hours: hours,
+                description: descriptionController.text,
+              );
+              
+              if (result != null && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Log updated successfully')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
