@@ -1,6 +1,21 @@
 // Integration test for sync functionality
-// Run with: flutter test test/integration/sync_integration_test.dart
-// Requires backend running on localhost:8080
+// 
+// IMPORTANT: These tests require a real backend server running on localhost:8080
+// and are NOT designed to run in CI with `flutter test`.
+//
+// These tests use TestWidgetsFlutterBinding which blocks all HTTP requests.
+// Run these manually when testing sync functionality locally, or use 
+// `flutter drive` with the integration_test/ folder for real e2e tests.
+//
+// Manual run: flutter test test/integration/sync_integration_test.dart
+// (Only works with backend running on localhost:8080)
+//
+// In CI, these tests are automatically skipped because:
+// 1. TestWidgetsFlutterBinding returns 400 for all HTTP requests
+// 2. FlutterSecureStorage has no platform implementation in test environment
+
+@Skip('Requires real backend server - run manually or use integration_test/')
+library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
