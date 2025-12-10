@@ -28,7 +28,7 @@ void main() {
           'Accept': 'application/json',
         },
         validateStatus: (status) => true, // Don't throw on non-2xx
-      ));
+      ),);
       storage = const FlutterSecureStorage();
     });
 
@@ -132,7 +132,7 @@ void main() {
       print('   Data: ${studentsResponse.data}');
       
       expect(studentsResponse.statusCode, equals(200), 
-        reason: 'Authenticated request should succeed');
+        reason: 'Authenticated request should succeed',);
     });
 
     testWidgets('Race condition test - save and immediate read', (tester) async {
@@ -205,8 +205,9 @@ void main() {
       }
       
       accessToken = registerResponse.data['accessToken'] as String;
-      final refreshToken = registerResponse.data['refreshToken'] as String;
-      final expiresAt = registerResponse.data['expiresAt'] as int;
+      // Note: refreshToken and expiresAt are available in the response but not used in this test
+      // final refreshToken = registerResponse.data['refreshToken'] as String;
+      // final expiresAt = registerResponse.data['expiresAt'] as int;
       
       print('🔧 Testing TokenStorage with cache...');
       

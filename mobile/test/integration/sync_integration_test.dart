@@ -29,7 +29,7 @@ void main() {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      ));
+      ),);
       storage = const FlutterSecureStorage();
     });
 
@@ -133,7 +133,7 @@ void main() {
           'Accept': 'application/json',
           'Authorization': 'Bearer $storedToken',
         },
-      ));
+      ),);
 
       try {
         final studentsResponse = await authenticatedDio.get('/api/v1/students');

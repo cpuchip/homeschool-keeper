@@ -29,23 +29,6 @@ const deletingLog = ref<LogEntry | null>(null)
 
 const loading = computed(() => logsStore.loading)
 
-// Get student/subject by ID for display
-const studentsById = computed(() => {
-  const map: Record<string, { name: string }> = {}
-  studentsStore.students.forEach(s => {
-    map[s.id] = { name: s.name }
-  })
-  return map
-})
-
-const subjectsById = computed(() => {
-  const map: Record<string, { name: string; color: string }> = {}
-  subjectsStore.subjects.forEach(s => {
-    map[s.id] = s
-  })
-  return map
-})
-
 // Filtered logs
 const filteredLogs = computed(() => {
   let logs = [...logsStore.logs]
@@ -69,14 +52,21 @@ const filteredLogs = computed(() => {
   return logs
 })
 
+// Extract date-only string from ISO timestamp
+function getDateOnly(dateStr: string): string {
+  // Handle both ISO timestamps and date-only strings
+  return dateStr.split('T')[0]
+}
+
 // Group logs by date
 const logsByDate = computed(() => {
   const groups: Record<string, LogEntry[]> = {}
   filteredLogs.value.forEach(log => {
-    if (!groups[log.date]) {
-      groups[log.date] = []
+    const dateKey = getDateOnly(log.date)
+    if (!groups[dateKey]) {
+      groups[dateKey] = []
     }
-    groups[log.date].push(log)
+    groups[dateKey].push(log)
   })
   return groups
 })
@@ -265,9 +255,9 @@ onMounted(async () => {
             v-for="log in logsByDate[date]" 
             :key="log.id"
             :log="log"
-            :student-name="studentsById[log.studentId]?.name || 'Unknown'"
-            :subject-name="subjectsById[log.subjectId]?.name || 'Unknown'"
-            :subject-color="subjectsById[log.subjectId]?.color || '#6B7280'"
+            :student="studentsStore.students.find(s => s.id === log.studentId)"
+            :subject="subjectsStore.subjects.find(s => s.id === log.subjectId)"
+            :show-actions="true"
             @edit="openEditModal(log)"
             @delete="openDeleteModal(log)"
           />
