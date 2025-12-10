@@ -66,6 +66,7 @@
 | ~~Flutter analyze fails~~ | High | Mobile CI | ✅ Fixed Dec 10 |
 | ~~Flutter test fails~~ | High | Mobile CI | ✅ Fixed Dec 10 |
 | ~~No user-facing sync indicator~~ | Low | Mobile | ✅ Fixed Dec 10 |
+| ~~StudentCard crashes when bySubject undefined~~ | Medium | Web | ✅ Fixed Dec 10 |
 
 ---
 
@@ -75,7 +76,7 @@
 
 ### 1.1 Web App Fixes
 - [x] ~~Fix LogsPage "Invalid Date" display~~ ✅ Done Dec 10
-- [ ] **Test log edit/delete functionality** (verify after fix)
+- [x] ~~Test log edit/delete functionality~~ ✅ Verified Dec 10 - Edit modal works, delete works
 - [ ] **Verify onboarding flow** end-to-end
 - [ ] **Add form validation feedback** (error messages on submit)
 
@@ -85,8 +86,7 @@
 - [ ] **Handle sync conflicts** - currently last-write-wins, need merge strategy
 
 ### 1.3 Testing Gaps
-- [ ] **Backend unit tests** - Currently no `*_test.go` files except testutil
-  - Priority: auth, repository/logs, handlers/logs
+- [x] **Backend unit tests** - LogRepository tests added (skipped on Windows, runs in CI)
 - [ ] **Web component tests** - Vitest deferred, but at least test stores
 - [ ] **Mobile widget tests** - Test critical flows
 
