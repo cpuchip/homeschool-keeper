@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/student.dart';
+import '../../../providers/logs_provider.dart';
 import '../../../providers/students_provider.dart';
 
 class StudentsScreen extends ConsumerStatefulWidget {
@@ -147,11 +148,50 @@ class _StudentCard extends ConsumerWidget {
             if (value == 'edit') {
               _showEditSheet(context, ref);
             } else if (value == 'delete') {
+              // Check if student has logs
+              final logCount = ref.read(logEntryRepositoryProvider).countByStudent(student.id);
+              
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Delete Student'),
-                  content: Text('Are you sure you want to delete ${student.name}?'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Are you sure you want to delete ${student.name}?'),
+                      if (logCount > 0) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.orange.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'This student has $logCount log ${logCount == 1 ? 'entry' : 'entries'}. '
+                                  'The student will be hidden but logs will be preserved.',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade900,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
@@ -159,13 +199,37 @@ class _StudentCard extends ConsumerWidget {
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                      child: Text(logCount > 0 ? 'Hide Student' : 'Delete'),
                     ),
                   ],
                 ),
               );
               if (confirmed == true) {
                 await ref.read(studentsProvider.notifier).deleteStudent(student.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        logCount > 0
+                            ? '${student.name} hidden (logs preserved)'
+                            : '${student.name} deleted',
+                      ),
+                      action: SnackBarAction(
+                        label: 'Undo',
+                        onPressed: () {
+                          // Restore student by setting active = true
+                          ref.read(studentsProvider.notifier).updateStudent(
+                                student.id,
+                                active: true,
+                              );
+                        },
+                      ),
+                    ),
+                  );
+                }
               }
             }
           },

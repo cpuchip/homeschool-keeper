@@ -90,6 +90,20 @@ class LogEntryRepository {
     return entity != null ? _toModel(entity) : null;
   }
 
+  /// Count log entries for a specific subject (all school years)
+  int countBySubject(String subjectId) {
+    return _db.logEntriesBox.values
+        .where((l) => l.subjectId == subjectId)
+        .length;
+  }
+
+  /// Count log entries for a specific student (all school years)
+  int countByStudent(String studentId) {
+    return _db.logEntriesBox.values
+        .where((l) => l.studentId == studentId)
+        .length;
+  }
+
   /// Create a new log entry
   Future<LogEntry> create({
     required String studentId,

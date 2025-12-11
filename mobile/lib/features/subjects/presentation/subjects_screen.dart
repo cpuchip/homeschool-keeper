@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/subject.dart';
+import '../../../providers/logs_provider.dart';
 import '../../../providers/subjects_provider.dart';
 
 class SubjectsScreen extends ConsumerStatefulWidget {
@@ -163,12 +164,50 @@ class _SubjectCard extends ConsumerWidget {
             if (value == 'edit') {
               _showEditSheet(context);
             } else if (value == 'delete') {
+              // Check if subject has logs
+              final logCount = ref.read(logEntryRepositoryProvider).countBySubject(subject.id);
+              
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Delete Subject'),
-                  content:
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text('Are you sure you want to delete ${subject.name}?'),
+                      if (logCount > 0) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.orange.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'This subject has $logCount log ${logCount == 1 ? 'entry' : 'entries'}. '
+                                  'The subject will be hidden but logs will be preserved.',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade900,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
@@ -176,7 +215,10 @@ class _SubjectCard extends ConsumerWidget {
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                      child: Text(logCount > 0 ? 'Hide Subject' : 'Delete'),
                     ),
                   ],
                 ),
@@ -185,6 +227,27 @@ class _SubjectCard extends ConsumerWidget {
                 await ref
                     .read(subjectsProvider.notifier)
                     .deleteSubject(subject.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        logCount > 0
+                            ? '${subject.name} hidden (logs preserved)'
+                            : '${subject.name} deleted',
+                      ),
+                      action: SnackBarAction(
+                        label: 'Undo',
+                        onPressed: () {
+                          // Restore subject by setting active = true
+                          ref.read(subjectsProvider.notifier).updateSubject(
+                                subject.id,
+                                active: true,
+                              );
+                        },
+                      ),
+                    ),
+                  );
+                }
               }
             }
           },
