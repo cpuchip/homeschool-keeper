@@ -73,6 +73,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _showLogoutDialog(BuildContext dialogContext) async {
+    final router = GoRouter.of(dialogContext);
+    final result = await showDialog<String>(
+      context: dialogContext,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('What would you like to do with your local data?'),
+            SizedBox(height: 12),
+            Text(
+              'If you keep the data, it will be available when you sign back in.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'cancel'),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'clear'),
+            child: const Text('Clear Data'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'keep'),
+            child: const Text('Keep Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'cancel' || result == null) return;
+
+    if (result == 'clear') {
+      // Clear all local data (also reinitializes defaults)
+      await DatabaseService.instance.clearAll();
+    }
+
+    // Logout
+    await ref.read(authStateProvider.notifier).logout();
+    
+    // Navigate to login (router was captured before async gap)
+    router.go('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -259,32 +308,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                 // Logout button
                 OutlinedButton.icon(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Sign Out'),
-                        content: const Text('Are you sure you want to sign out?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Sign Out'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirmed == true) {
-                      await ref.read(authStateProvider.notifier).logout();
-                      if (context.mounted) {
-                        context.go('/login');
-                      }
-                    }
-                  },
+                  onPressed: () => _showLogoutDialog(context),
                   icon: const Icon(Icons.logout),
                   label: const Text('Sign Out'),
                   style: OutlinedButton.styleFrom(
