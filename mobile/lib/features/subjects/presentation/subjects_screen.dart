@@ -23,7 +23,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const _AddSubjectSheet(),
+      builder: (context) => const _SubjectSheet(),
     );
   }
 
@@ -132,6 +132,14 @@ class _SubjectCard extends ConsumerWidget {
     }
   }
 
+  void _showEditSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _SubjectSheet(subject: subject),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = _parseColor(subject.color);
@@ -152,7 +160,9 @@ class _SubjectCard extends ConsumerWidget {
         ),
         trailing: PopupMenuButton<String>(
           onSelected: (value) async {
-            if (value == 'delete') {
+            if (value == 'edit') {
+              _showEditSheet(context);
+            } else if (value == 'delete') {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -188,19 +198,36 @@ class _SubjectCard extends ConsumerWidget {
   }
 }
 
-class _AddSubjectSheet extends ConsumerStatefulWidget {
-  const _AddSubjectSheet();
+class _SubjectSheet extends ConsumerStatefulWidget {
+  final Subject? subject;
+  
+  const _SubjectSheet({this.subject});
 
   @override
-  ConsumerState<_AddSubjectSheet> createState() => _AddSubjectSheetState();
+  ConsumerState<_SubjectSheet> createState() => _SubjectSheetState();
 }
 
-class _AddSubjectSheetState extends ConsumerState<_AddSubjectSheet> {
+class _SubjectSheetState extends ConsumerState<_SubjectSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  String _selectedType = SubjectType.elective;
-  String _selectedColor = SubjectColors.all.first;
+  late String _selectedType;
+  late String _selectedColor;
   bool _isLoading = false;
+
+  bool get _isEditing => widget.subject != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _nameController.text = widget.subject!.name;
+      _selectedType = widget.subject!.type;
+      _selectedColor = widget.subject!.color;
+    } else {
+      _selectedType = SubjectType.elective;
+      _selectedColor = SubjectColors.all.first;
+    }
+  }
 
   @override
   void dispose() {
@@ -214,22 +241,38 @@ class _AddSubjectSheetState extends ConsumerState<_AddSubjectSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final subject = await ref.read(subjectsProvider.notifier).createSubject(
-            name: _nameController.text.trim(),
-            type: _selectedType,
-            color: _selectedColor,
-          );
+      if (_isEditing) {
+        final updated = await ref.read(subjectsProvider.notifier).updateSubject(
+              widget.subject!.id,
+              name: _nameController.text.trim(),
+              type: _selectedType,
+              color: _selectedColor,
+            );
 
-      if (mounted && subject != null) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Added ${subject.name}')),
-        );
+        if (mounted && updated != null) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Updated ${updated.name}')),
+          );
+        }
+      } else {
+        final subject = await ref.read(subjectsProvider.notifier).createSubject(
+              name: _nameController.text.trim(),
+              type: _selectedType,
+              color: _selectedColor,
+            );
+
+        if (mounted && subject != null) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Added ${subject.name}')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add subject: $e')),
+          SnackBar(content: Text('Failed to ${_isEditing ? "update" : "add"} subject: $e')),
         );
       }
     } finally {
@@ -253,7 +296,7 @@ class _AddSubjectSheetState extends ConsumerState<_AddSubjectSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Add Subject',
+              _isEditing ? 'Edit Subject' : 'Add Subject',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
@@ -327,7 +370,7 @@ class _AddSubjectSheetState extends ConsumerState<_AddSubjectSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Add Subject'),
+                  : Text(_isEditing ? 'Save Changes' : 'Add Subject'),
             ),
           ],
         ),

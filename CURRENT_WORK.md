@@ -92,17 +92,18 @@
 
 ---
 
-## Priority 2: Complete Phase 1B (Next 2 Weeks) - SIGNIFICANT PROGRESS
+## Priority 2: Complete Phase 1B (Next 2 Weeks) - ✅ COMPLETE
 
 ### 2.1 Mobile Cloud Sync Polish
 - [x] ~~Full sync on login~~ - Login now awaits full sync before navigating ✅ Done Dec 10
 - [x] ~~Sync indicator in UI~~ - Show syncing status, last sync time ✅ Done Dec 10
-- [x] ~~Conflict resolution UI~~ - Orange snackbar shows conflict count (server-wins) ✅ Done Dec 10
+- [x] ~~Conflict resolution UI~~ - Windows Explorer-style conflict dialog ✅ Done Dec 10-11
 - [x] ~~Logout clears local data~~ - Dialog asks Keep Data/Clear Data ✅ Done Dec 10
 
 ### 2.2 Mobile UX Improvements
-- [ ] **Student avatars** - Use gradeLevel-based colors already in place
-- [ ] **Subject color picker** - Allow custom colors
+- [x] **Student avatars** - Color picker with AvatarColors.all ✅ Already implemented
+- [x] **Subject color picker** - Color picker with SubjectColors.all ✅ Already implemented
+- [x] **Student/Subject editing** - Edit sheets for both ✅ Done Dec 11
 - [x] ~~Log entry editing~~ ✅ Done Dec 10 - Edit dialog added in logs_screen.dart
 - [x] ~~Delete confirmations~~ - Already implemented with AlertDialog ✅ Verified Dec 10
 - [x] ~~Pull-to-refresh~~ - Already implemented on all list screens ✅ Verified Dec 10
@@ -122,13 +123,21 @@
 - [ ] **Excel export** - Detailed log entries
 - [ ] **Work samples** - Photo attachments to logs
 
-### 3.2 Advanced Features
+### 3.2 Custom Subjects
+- [ ] **Custom subjects in onboarding** - Let users add their own subjects during setup
+- [ ] **Add/edit/remove subjects** - Full CRUD in Subjects page (already done, verify working)
+- [ ] **Soft delete protection** - Warn if deleting subject with attached logs, mark as deleted not hard-delete
+- [ ] **Trash/Recycle Bin view** - View deleted items (students, subjects, logs) across all screens
+- [ ] **Restore from trash** - Undelete soft-deleted items
+- [ ] **Permanent delete** - Hard delete from trash (with confirmation, logs check)
+
+### 3.3 Advanced Features
 - [ ] **Google OAuth** - Social login option
 - [ ] **Student accounts** - Kids can log their own hours
 - [ ] **Approval workflow** - Parent approves student-submitted logs
 - [ ] **Email notifications** - Weekly summaries
 
-### 3.3 Multi-State Support
+### 3.4 Multi-State Support
 - [ ] **State law presets** - Different requirements per state
 - [ ] **Hour tracking by state** - Missouri = 1000 total, 600 core, etc.
 
@@ -212,6 +221,21 @@ Backend (Go)
 
 ## 📝 Recent Changes Log
 
+### December 11, 2025
+- **Fixed flutter analyze issues** for CI/CD pipeline (12 lint fixes)
+  - Added trailing commas to sync_service.dart, conflict_resolution_screen.dart, sync_provider.dart
+  - Fixed `use_build_context_synchronously` in sync_status_indicator.dart, settings_screen.dart
+- **Added edit functionality** to mobile Students and Subjects screens
+  - Renamed AddStudentSheet → StudentSheet with optional student param for edit mode
+  - Renamed AddSubjectSheet → SubjectSheet with optional subject param for edit mode
+  - Wired up "Edit" menu action in popup menus
+- **Priority 2 Complete** - All mobile and web UX improvements done
+- Updated Priority 3 with new items:
+  - Custom subjects during onboarding
+  - Soft delete protection for subjects with logs
+  - Trash/Recycle Bin view for deleted items
+  - Restore and permanent delete functionality
+
 ### December 10, 2025
 - Fixed LogsPage "Invalid Date" display (date parsing from ISO timestamps)
 - Fixed LogsPage student/subject display (pass full objects, not just names)
@@ -243,4 +267,4 @@ Backend (Go)
 
 ---
 
-*Last Updated: December 10, 2025*
+*Last Updated: December 11, 2025*

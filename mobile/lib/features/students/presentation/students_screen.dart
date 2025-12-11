@@ -23,7 +23,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const _AddStudentSheet(),
+      builder: (context) => const _StudentSheet(),
     );
   }
 
@@ -118,6 +118,14 @@ class _StudentCard extends ConsumerWidget {
     }
   }
 
+  void _showEditSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _StudentSheet(student: student),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = _parseColor(student.avatarColor, context);
@@ -136,7 +144,9 @@ class _StudentCard extends ConsumerWidget {
         subtitle: Text('Grade ${student.gradeLevel}'),
         trailing: PopupMenuButton<String>(
           onSelected: (value) async {
-            if (value == 'delete') {
+            if (value == 'edit') {
+              _showEditSheet(context, ref);
+            } else if (value == 'delete') {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -169,19 +179,36 @@ class _StudentCard extends ConsumerWidget {
   }
 }
 
-class _AddStudentSheet extends ConsumerStatefulWidget {
-  const _AddStudentSheet();
+class _StudentSheet extends ConsumerStatefulWidget {
+  final Student? student;
+  
+  const _StudentSheet({this.student});
 
   @override
-  ConsumerState<_AddStudentSheet> createState() => _AddStudentSheetState();
+  ConsumerState<_StudentSheet> createState() => _StudentSheetState();
 }
 
-class _AddStudentSheetState extends ConsumerState<_AddStudentSheet> {
+class _StudentSheetState extends ConsumerState<_StudentSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  String _selectedGrade = 'K';
-  String _selectedColor = AvatarColors.all.first;
+  late String _selectedGrade;
+  late String _selectedColor;
   bool _isLoading = false;
+
+  bool get _isEditing => widget.student != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _nameController.text = widget.student!.name;
+      _selectedGrade = widget.student!.gradeLevel;
+      _selectedColor = widget.student!.avatarColor ?? AvatarColors.all.first;
+    } else {
+      _selectedGrade = 'K';
+      _selectedColor = AvatarColors.all.first;
+    }
+  }
 
   @override
   void dispose() {
@@ -195,22 +222,38 @@ class _AddStudentSheetState extends ConsumerState<_AddStudentSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final student = await ref.read(studentsProvider.notifier).createStudent(
-            name: _nameController.text.trim(),
-            gradeLevel: _selectedGrade,
-            avatarColor: _selectedColor,
-          );
+      if (_isEditing) {
+        final updated = await ref.read(studentsProvider.notifier).updateStudent(
+              widget.student!.id,
+              name: _nameController.text.trim(),
+              gradeLevel: _selectedGrade,
+              avatarColor: _selectedColor,
+            );
 
-      if (mounted && student != null) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Added ${student.name}')),
-        );
+        if (mounted && updated != null) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Updated ${updated.name}')),
+          );
+        }
+      } else {
+        final student = await ref.read(studentsProvider.notifier).createStudent(
+              name: _nameController.text.trim(),
+              gradeLevel: _selectedGrade,
+              avatarColor: _selectedColor,
+            );
+
+        if (mounted && student != null) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Added ${student.name}')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add student: $e')),
+          SnackBar(content: Text('Failed to ${_isEditing ? "update" : "add"} student: $e')),
         );
       }
     } finally {
@@ -234,7 +277,7 @@ class _AddStudentSheetState extends ConsumerState<_AddStudentSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Add Student',
+              _isEditing ? 'Edit Student' : 'Add Student',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
@@ -305,7 +348,7 @@ class _AddStudentSheetState extends ConsumerState<_AddStudentSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Add Student'),
+                  : Text(_isEditing ? 'Save Changes' : 'Add Student'),
             ),
           ],
         ),
