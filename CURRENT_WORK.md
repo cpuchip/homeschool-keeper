@@ -118,10 +118,15 @@
 
 ## Priority 3: Phase 2 Features (Future)
 
-### 3.1 Export & Compliance
-- [ ] **PDF export** - Hours summary report for state submission
-- [ ] **Excel export** - Detailed log entries
-- [ ] **Work samples** - Photo attachments to logs
+### 3.1 Export & Compliance ✅ COMPLETE
+- [x] **PDF export** - Hours Summary and Detailed Logs reports ✅ Done Dec 11
+  - PdfReportService with professional formatting
+  - Per-student breakdown with core/elective hours
+  - Detailed logs table with date, student, subject, hours, description
+  - Print and Share buttons in export dialog
+- [x] **CSV export** - Log entries to spreadsheet format ✅ Done Dec 11
+  - ExportScreen accessible from Settings → Export Data
+- [ ] **Work samples** - Photo attachments to logs (future)
 
 ### 3.2 Custom Subjects
 - [x] **Custom subjects in onboarding** - Let users add their own subjects during setup ✅ Done Dec 11
@@ -240,23 +245,20 @@ Backend (Go)
 
 ### December 11, 2025
 - **Fixed flutter analyze issues** for CI/CD pipeline (12 lint fixes)
-  - Added trailing commas to sync_service.dart, conflict_resolution_screen.dart, sync_provider.dart
-  - Fixed `use_build_context_synchronously` in sync_status_indicator.dart, settings_screen.dart
 - **Added edit functionality** to mobile Students and Subjects screens
-  - Renamed AddStudentSheet → StudentSheet with optional student param for edit mode
-  - Renamed AddSubjectSheet → SubjectSheet with optional subject param for edit mode
-  - Wired up "Edit" menu action in popup menus
 - **Priority 2 Complete** - All mobile and web UX improvements done
 - **Fixed duplicate CI runs** - Removed `scaffolding` from push trigger, added concurrency group
 - **Custom subjects in onboarding** (Web + Mobile):
   - Web: Added input field, type selector (core/elective), remove button for custom subjects
   - Mobile: Created full OnboardingScreen with 3 steps (school year, subjects, students)
-  - Added /onboarding route to mobile router
-- Updated Priority 3 with new items:
-  - State law research task
-  - Soft delete protection for subjects with logs
-  - Trash/Recycle Bin view for deleted items
-  - Restore and permanent delete functionality
+- **Soft delete protection** - Orange warning when deleting items with logs
+- **Trash/Recycle Bin view** - TrashScreen with restore and permanent delete
+- **PDF Export** (Priority 3.1):
+  - PdfReportService with Hours Summary and Detailed Logs reports
+  - ExportScreen accessible from Settings → Export Data
+  - Professional formatting with headers, footers, signature line
+  - Print and Share buttons in export dialog
+- **CSV Export** - Log entries exportable to spreadsheet format
 
 ### December 10, 2025
 - Fixed LogsPage "Invalid Date" display (date parsing from ISO timestamps)
