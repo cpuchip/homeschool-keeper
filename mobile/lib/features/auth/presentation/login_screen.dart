@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/sync_provider.dart';
+import '../../sync/presentation/conflict_resolution_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -42,7 +43,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (authState.onboardingComplete) {
           // Perform full sync (non-incremental) after login
           // This ensures all server data is pulled before showing dashboard
-          await ref.read(syncProvider.notifier).performFullSync(incremental: false);
+          final syncResult = await ref.read(syncProvider.notifier).performFullSync(incremental: false);
+          
+          // Check for conflicts and show resolution dialog if needed
+          if (mounted && syncResult.hasConflicts) {
+            final resolutions = await Navigator.of(context).push<List<ResolvedConflict>>(
+              MaterialPageRoute(
+                builder: (context) => ConflictResolutionScreen(
+                  conflicts: syncResult.conflictItems,
+                ),
+              ),
+            );
+            
+            // Apply resolutions if user didn't cancel
+            if (resolutions != null && mounted) {
+              await ref.read(syncProvider.notifier).applyConflictResolutions(resolutions);
+            }
+          }
+          
           if (mounted) context.go('/dashboard');
         } else {
           context.go('/onboarding');

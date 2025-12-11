@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_client.dart';
 import '../core/sync/sync_service.dart';
 
+export '../core/sync/conflict_item.dart';
+
 /// Sync state for UI
 class SyncState {
   final SyncStatus status;
@@ -41,7 +43,7 @@ class SyncState {
   String get statusText {
     switch (status) {
       case SyncStatus.idle:
-        return pendingChanges > 0 
+        return pendingChanges > 0
             ? '$pendingChanges changes pending'
             : 'Up to date';
       case SyncStatus.syncing:
@@ -55,15 +57,15 @@ class SyncState {
 
   String? get lastSyncText {
     if (lastSyncTime == null) return 'Never synced';
-    
+
     final now = DateTime.now();
     final diff = now.difference(lastSyncTime!);
-    
+
     if (diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    
+
     return '${lastSyncTime!.month}/${lastSyncTime!.day}/${lastSyncTime!.year}';
   }
 }
@@ -174,6 +176,16 @@ class SyncNotifier extends StateNotifier<SyncState> {
   /// Clear error state
   void clearError() {
     state = state.copyWith(status: SyncStatus.idle, error: null);
+  }
+
+  /// Apply user's conflict resolutions
+  Future<int> applyConflictResolutions(
+      List<ResolvedConflict> resolutions) async {
+    final resolved = await _syncService.applyConflictResolutions(resolutions);
+    state = state.copyWith(
+      pendingChanges: _syncService.getPendingChangesCount(),
+    );
+    return resolved;
   }
 }
 

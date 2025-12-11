@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../sync/presentation/conflict_resolution_screen.dart';
 
 /// A widget that displays the sync status with last sync time.
 /// 
@@ -219,23 +220,38 @@ class SyncButton extends ConsumerWidget {
     
     if (context.mounted) {
       if (result.success) {
-        // Build message with conflict info if any
-        String message = 'Synced: ${result.totalPushed} pushed, ${result.totalPulled} pulled';
-        Color? backgroundColor;
-        
+        // Check for conflicts and show resolution dialog
         if (result.hasConflicts) {
-          message = 'Synced with ${result.conflicts} conflict${result.conflicts > 1 ? 's' : ''} (server wins)';
-          backgroundColor = Colors.orange.shade700;
+          final resolutions = await Navigator.of(context).push<List<ResolvedConflict>>(
+            MaterialPageRoute(
+              builder: (context) => ConflictResolutionScreen(
+                conflicts: result.conflictItems,
+              ),
+            ),
+          );
+          
+          // Apply resolutions if user didn't cancel
+          if (resolutions != null && context.mounted) {
+            final resolved = await syncNotifier.applyConflictResolutions(resolutions);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Resolved $resolved conflict${resolved == 1 ? '' : 's'}'),
+                backgroundColor: Colors.green.shade700,
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } else {
+          // No conflicts - show simple success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Synced: ${result.totalPushed} pushed, ${result.totalPulled} pulled'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: backgroundColor,
-            duration: Duration(seconds: result.hasConflicts ? 4 : 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

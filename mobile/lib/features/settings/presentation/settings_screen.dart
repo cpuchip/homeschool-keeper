@@ -5,6 +5,7 @@ import '../../../core/database/database_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/sync_provider.dart';
 import '../../export/failsafe_backup_service.dart';
+import '../../sync/presentation/conflict_resolution_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -398,18 +399,36 @@ class _DataSyncCard extends ConsumerWidget {
                           .performFullSync();
                       
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              result.success
-                                  ? 'Synced ${result.totalPulled} items'
-                                  : 'Sync failed: ${result.error}',
+                        if (result.success && result.hasConflicts) {
+                          // Show conflict resolution dialog
+                          final resolutions = await Navigator.of(context).push<List<ResolvedConflict>>(
+                            MaterialPageRoute(
+                              builder: (context) => ConflictResolutionScreen(
+                                conflicts: result.conflictItems,
+                              ),
                             ),
-                            backgroundColor: result.success
-                                ? null
-                                : Theme.of(context).colorScheme.error,
-                          ),
-                        );
+                          );
+                          
+                          if (resolutions != null && context.mounted) {
+                            await ref.read(syncProvider.notifier).applyConflictResolutions(resolutions);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Conflicts resolved')),
+                            );
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                result.success
+                                    ? 'Synced ${result.totalPulled} items'
+                                    : 'Sync failed: ${result.error}',
+                              ),
+                              backgroundColor: result.success
+                                  ? null
+                                  : Theme.of(context).colorScheme.error,
+                            ),
+                          );
+                        }
                       }
                     },
                   ),
