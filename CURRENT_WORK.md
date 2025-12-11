@@ -151,6 +151,10 @@
   - "Select All" / "Clear All" buttons
   - Creates N log entries with same groupId
   - Each student gets their own hours (stats unchanged)
+- [x] **Grouped log display** - Logs with same groupId shown together ✅ Done Dec 11
+  - Mobile: _GroupedLogCard with expandable details
+  - Web: GroupedLogRow component with expandable details
+  - Both show student count badge and individual entries
 
 ### 3.3 Advanced Features
 - [ ] **Work samples** - Photo attachments to logs (R2 storage planned)
@@ -171,6 +175,45 @@
   - Sources: Official state education department links
 - [ ] **State law presets** - Different requirements per state
 - [ ] **Hour tracking by state** - Missouri = 1000 total, 600 core, etc.
+
+---
+
+## 📱 Web vs Mobile Parity Status
+
+### ✅ Feature Parity Complete
+| Feature | Web | Mobile |
+|---------|-----|--------|
+| Login/Register | ✅ | ✅ |
+| Dashboard with stats | ✅ | ✅ |
+| Students CRUD | ✅ | ✅ |
+| Subjects CRUD | ✅ | ✅ |
+| Quick Log | ✅ | ✅ |
+| Multi-student logs | ✅ | ✅ |
+| Grouped log display | ✅ | ✅ |
+| Log editing | ✅ | ✅ |
+| Log deletion | ✅ | ✅ |
+| Onboarding | ✅ | ✅ |
+| Custom subjects | ✅ | ✅ |
+| Settings page | ✅ | ✅ |
+
+### ⚠️ Mobile-Only Features (by design)
+| Feature | Notes |
+|---------|-------|
+| Offline mode | Mobile is offline-first, web requires connection |
+| Failsafe backup | Local backup to Documents folder |
+| Sync status indicator | Shows sync status in app bar |
+| Trash/Recycle Bin | View and restore deleted items |
+| PDF Export | Local PDF generation and sharing |
+| CSV Export | Local CSV export |
+
+### ❌ Remaining Parity Gaps
+| Feature | Web | Mobile | Priority |
+|---------|-----|--------|----------|
+| Trash view | ❌ Missing | ✅ Done | Low |
+| PDF export | ❌ Missing | ✅ Done | Low |
+| School year selector | ✅ Robust | ⚠️ Basic | Medium |
+
+**Note**: Web doesn't need local backup/export since data is server-side. Server-side PDF generation can be added later.
 
 ---
 
@@ -265,6 +308,18 @@ Backend (Go)
 - **PDF Export** (Priority 3.1):
   - PdfReportService with Hours Summary and Detailed Logs reports
   - ExportScreen accessible from Settings → Export Data
+  - Professional formatting with headers, footers, signature line
+  - Print and Share buttons in export dialog
+- **CSV Export** - Log entries exportable to spreadsheet format
+- **Multi-Student Logs** (Web + Mobile parity):
+  - Added `groupId` field to LogEntry model (backend + mobile + web)
+  - QuickLogScreen/QuickLogPage with multi-student chip selection
+  - Creates N log entries with shared groupId
+- **Grouped Log Display** (Web + Mobile parity):
+  - Mobile: _GroupedLogCard with expandable student list
+  - Web: GroupedLogRow component with expandable details
+  - Shows student count badge, total hours, individual edit/delete
+- **Web/Mobile Parity Audit** - Documented feature parity status
   - Professional formatting with headers, footers, signature line
   - Print and Share buttons in export dialog
 - **CSV Export** - Log entries exportable to spreadsheet format
