@@ -144,7 +144,16 @@
 - [x] **Restore from trash** - Undelete soft-deleted items ✅ Done Dec 11
 - [x] **Permanent delete** - Hard delete with confirmation and log warning ✅ Done Dec 11
 
+### 3.2.5 Multi-Student Logs ✅ NEW
+- [x] **Multi-student log entries** - Log same activity for multiple students at once ✅ Done Dec 11
+  - Added `groupId` field to LogEntry (backend + mobile)
+  - QuickLogScreen now uses FilterChips for multi-student selection
+  - "Select All" / "Clear All" buttons
+  - Creates N log entries with same groupId
+  - Each student gets their own hours (stats unchanged)
+
 ### 3.3 Advanced Features
+- [ ] **Work samples** - Photo attachments to logs (R2 storage planned)
 - [ ] **Google OAuth** - Social login option
 - [ ] **Student accounts** - Kids can log their own hours
 - [ ] **Approval workflow** - Parent approves student-submitted logs
@@ -259,6 +268,10 @@ Backend (Go)
   - Professional formatting with headers, footers, signature line
   - Print and Share buttons in export dialog
 - **CSV Export** - Log entries exportable to spreadsheet format
+- **Multi-Student Logs** - Log same activity for multiple students at once:
+  - Added `groupId` field to LogEntry model (backend + mobile)
+  - QuickLogScreen now uses FilterChips for multi-student selection
+  - Creates N log entries with shared groupId
 
 ### December 10, 2025
 - Fixed LogsPage "Invalid Date" display (date parsing from ISO timestamps)
