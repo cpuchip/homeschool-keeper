@@ -13,6 +13,7 @@ const logsStore = useLogsStore()
 const authStore = useAuthStore()
 
 const studentId = ref('')
+const selectedStudentIds = ref<string[]>([])
 const subjectId = ref('')
 const hours = ref(1)
 const description = ref('')
@@ -51,6 +52,7 @@ function setHours(value: number) {
 
 function resetForm() {
   studentId.value = ''
+  selectedStudentIds.value = []
   subjectId.value = ''
   hours.value = 1
   description.value = ''
@@ -60,9 +62,26 @@ function resetForm() {
   error.value = ''
 }
 
+function toggleStudent(id: string) {
+  const index = selectedStudentIds.value.indexOf(id)
+  if (index === -1) {
+    selectedStudentIds.value.push(id)
+  } else {
+    selectedStudentIds.value.splice(index, 1)
+  }
+}
+
+function selectAllStudents() {
+  selectedStudentIds.value = activeStudents.value.map(s => s.id)
+}
+
+function clearAllStudents() {
+  selectedStudentIds.value = []
+}
+
 async function handleSubmit(addAnother = false) {
-  if (!studentId.value || !subjectId.value) {
-    error.value = 'Please select a student and subject'
+  if (selectedStudentIds.value.length === 0 || !subjectId.value) {
+    error.value = 'Please select at least one student and a subject'
     return
   }
 
@@ -71,8 +90,8 @@ async function handleSubmit(addAnother = false) {
   success.value = ''
 
   try {
-    await logsStore.createLog({
-      studentId: studentId.value,
+    const result = await logsStore.createMultiStudentLog({
+      studentIds: selectedStudentIds.value,
       subjectId: subjectId.value,
       hours: hours.value,
       description: description.value,
@@ -81,13 +100,15 @@ async function handleSubmit(addAnother = false) {
     })
 
     if (addAnother) {
-      // Reset form but keep student/date for convenience
-      const currentStudent = studentId.value
+      // Reset form but keep students/date for convenience
+      const currentStudents = [...selectedStudentIds.value]
       const currentDate = date.value
       resetForm()
-      studentId.value = currentStudent
+      selectedStudentIds.value = currentStudents
       date.value = currentDate
-      success.value = 'Log saved! Add another entry.'
+      success.value = result.length === 1 
+        ? 'Log saved! Add another entry.'
+        : `${result.length} logs saved! Add another entry.`
     } else {
       // Go to logs page
       router.push('/logs')
@@ -110,7 +131,7 @@ onMounted(async () => {
   
   // Auto-select if only one student
   if (activeStudents.value.length === 1) {
-    studentId.value = activeStudents.value[0].id
+    selectedStudentIds.value = [activeStudents.value[0].id]
   }
 })
 </script>
@@ -137,16 +158,40 @@ onMounted(async () => {
     </div>
 
     <form class="card space-y-6" @submit.prevent="handleSubmit(false)">
-      <!-- Student -->
+      <!-- Students (multi-select with chips) -->
       <div>
-        <label for="student" class="label">Student</label>
-        <select id="student" v-model="studentId" class="mt-1 input" required>
-          <option value="">Select a student</option>
-          <option v-for="student in activeStudents" :key="student.id" :value="student.id">
+        <div class="flex items-center justify-between mb-2">
+          <label class="label">Students</label>
+          <div v-if="activeStudents.length > 1" class="flex gap-2">
+            <button
+              type="button"
+              class="text-sm text-blue-600 hover:text-blue-800"
+              @click="selectedStudentIds.length === activeStudents.length ? clearAllStudents() : selectAllStudents()"
+            >
+              {{ selectedStudentIds.length === activeStudents.length ? 'Clear All' : 'Select All' }}
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="student in activeStudents"
+            :key="student.id"
+            type="button"
+            :class="[
+              'px-3 py-2 rounded-full text-sm font-medium transition-colors',
+              selectedStudentIds.includes(student.id)
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+            @click="toggleStudent(student.id)"
+          >
             {{ student.name }}
-            <template v-if="student.gradeLevel"> ({{ student.gradeLevel }})</template>
-          </option>
-        </select>
+            <span v-if="selectedStudentIds.includes(student.id)" class="ml-1">✓</span>
+          </button>
+        </div>
+        <p v-if="selectedStudentIds.length > 1" class="mt-2 text-sm text-blue-600">
+          {{ selectedStudentIds.length }} students selected — will create {{ selectedStudentIds.length }} log entries
+        </p>
       </div>
 
       <!-- Subject -->

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../models/log_entry.dart';
+import '../../../models/student.dart';
+import '../../../models/subject.dart';
 import '../../../providers/logs_provider.dart';
 import '../../../providers/students_provider.dart';
 import '../../../providers/subjects_provider.dart';
@@ -35,7 +37,7 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
     final logsState = ref.watch(logsProvider);
     final studentsState = ref.watch(studentsProvider);
     final subjectsState = ref.watch(subjectsProvider);
-    final logs = logsState.sortedByDate;
+    final groupedLogs = logsState.groupedLogs;
 
     return Scaffold(
       body: RefreshIndicator(
@@ -59,11 +61,11 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                 ),
               ],
             ),
-            if (logsState.isLoading && logs.isEmpty)
+            if (logsState.isLoading && groupedLogs.isEmpty)
               const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (logs.isEmpty)
+            else if (groupedLogs.isEmpty)
               SliverFillRemaining(
                 child: Center(
                   child: Column(
@@ -100,23 +102,44 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final log = logs[index];
-                      // Find student and subject names
-                      final student = studentsState.students
-                          .where((s) => s.id == log.studentId)
-                          .firstOrNull;
+                      final group = groupedLogs[index];
+                      final log = group.primaryLog;
                       final subject = subjectsState.subjects
                           .where((s) => s.id == log.subjectId)
                           .firstOrNull;
 
-                      return _LogCard(
-                        log: log,
-                        studentName: student?.name ?? 'Unknown',
-                        subjectName: subject?.name ?? 'Unknown',
-                        subjectColor: subject?.color ?? '#3B82F6',
-                      );
+                      if (group.isGroup) {
+                        // Multi-student grouped log
+                        final studentNames = group.logs.map((l) {
+                          final student = studentsState.students
+                              .where((s) => s.id == l.studentId)
+                              .firstOrNull;
+                          return student?.name ?? 'Unknown';
+                        }).toList();
+
+                        return _GroupedLogCard(
+                          group: group,
+                          studentNames: studentNames,
+                          subjectName: subject?.name ?? 'Unknown',
+                          subjectColor: subject?.color ?? '#3B82F6',
+                          allStudents: studentsState.students,
+                          allSubjects: subjectsState.subjects,
+                        );
+                      } else {
+                        // Single log entry
+                        final student = studentsState.students
+                            .where((s) => s.id == log.studentId)
+                            .firstOrNull;
+
+                        return _LogCard(
+                          log: log,
+                          studentName: student?.name ?? 'Unknown',
+                          subjectName: subject?.name ?? 'Unknown',
+                          subjectColor: subject?.color ?? '#3B82F6',
+                        );
+                      }
                     },
-                    childCount: logs.length,
+                    childCount: groupedLogs.length,
                   ),
                 ),
               ),
@@ -363,6 +386,227 @@ class _LogCard extends ConsumerWidget {
             child: const Text('Save'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Card for displaying grouped logs (multi-student entries)
+class _GroupedLogCard extends StatefulWidget {
+  final LogGroup group;
+  final List<String> studentNames;
+  final String subjectName;
+  final String subjectColor;
+  final List<Student> allStudents;
+  final List<Subject> allSubjects;
+
+  const _GroupedLogCard({
+    required this.group,
+    required this.studentNames,
+    required this.subjectName,
+    required this.subjectColor,
+    required this.allStudents,
+    required this.allSubjects,
+  });
+
+  @override
+  State<_GroupedLogCard> createState() => _GroupedLogCardState();
+}
+
+class _GroupedLogCardState extends State<_GroupedLogCard> {
+  bool _isExpanded = false;
+
+  Color _parseColor(String hex) {
+    try {
+      return Color(int.parse(hex.replaceFirst('#', ''), radix: 16) | 0xFF000000);
+    } catch (_) {
+      return Colors.blue;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _parseColor(widget.subjectColor);
+    final dateFormat = DateFormat('MMM d, yyyy');
+    final log = widget.group.primaryLog;
+    final totalHours = widget.group.totalHours;
+    final hoursPerStudent = log.hours;
+    final studentCount = widget.group.logs.length;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => setState(() => _isExpanded = !_isExpanded),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              widget.subjectName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.people,
+                                    size: 14,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$studentCount',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.studentNames.join(', '),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                          maxLines: _isExpanded ? null : 1,
+                          overflow:
+                              _isExpanded ? null : TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${hoursPerStudent}h each',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                      ),
+                      Text(
+                        dateFormat.format(log.date),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              if (log.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  log.description,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  maxLines: _isExpanded ? null : 2,
+                  overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                ),
+              ],
+              if (_isExpanded) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
+                Text(
+                  'Individual entries:',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...widget.group.logs.map((l) {
+                  final student = widget.allStudents
+                      .where((s) => s.id == l.studentId)
+                      .firstOrNull;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(student?.name ?? 'Unknown'),
+                        ),
+                        Text(
+                          '${l.hours}h',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Total: ${totalHours}h',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

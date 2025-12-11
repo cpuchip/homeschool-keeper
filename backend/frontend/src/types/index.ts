@@ -86,6 +86,7 @@ export interface LogEntry {
   organizationId?: string // for co-op activities
   studentId: string
   subjectId: string
+  groupId?: string // links multiple log entries created together (multi-student)
   date: string
   hours: number
   description: string
@@ -100,6 +101,18 @@ export interface LogEntry {
 
 export interface CreateLogEntry {
   studentId: string
+  subjectId: string
+  date: string
+  hours: number
+  description: string
+  locationType: LocationType
+  locationName?: string
+  groupId?: string // for multi-student logs
+}
+
+// Multi-student log creation request
+export interface CreateMultiStudentLog {
+  studentIds: string[]
   subjectId: string
   date: string
   hours: number

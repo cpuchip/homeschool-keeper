@@ -4,7 +4,7 @@ import { useLogsStore } from '@/stores/logs'
 import { useStudentsStore } from '@/stores/students'
 import { useSubjectsStore } from '@/stores/subjects'
 import { useAuthStore } from '@/stores/auth'
-import { LogEntryRow, BaseModal, SchoolYearSelector } from '@/components/common'
+import { BaseModal, SchoolYearSelector, GroupedLogRow } from '@/components/common'
 import { toast } from '@/composables/useToast'
 import type { LogEntry } from '@/types'
 
@@ -61,15 +61,72 @@ function getDateOnly(dateStr: string): string {
   return dateStr.split('T')[0]
 }
 
-// Group logs by date
-const logsByDate = computed(() => {
+// Represents a single log or a group of logs with the same groupId
+interface LogGroup {
+  logs: LogEntry[]
+  isGroup: boolean
+  primaryLog: LogEntry
+  totalHours: number
+  studentIds: string[]
+}
+
+// Group logs by groupId for display
+const groupedFilteredLogs = computed((): LogGroup[] => {
+  const sorted = [...filteredLogs.value].sort((a, b) => b.date.localeCompare(a.date))
   const groups: Record<string, LogEntry[]> = {}
-  filteredLogs.value.forEach(log => {
-    const dateKey = getDateOnly(log.date)
+  const singles: LogEntry[] = []
+
+  for (const log of sorted) {
+    if (log.groupId) {
+      if (!groups[log.groupId]) {
+        groups[log.groupId] = []
+      }
+      groups[log.groupId].push(log)
+    } else {
+      singles.push(log)
+    }
+  }
+
+  // Build result maintaining date order
+  const result: LogGroup[] = []
+  const processedGroupIds = new Set<string>()
+
+  for (const log of sorted) {
+    if (log.groupId) {
+      if (!processedGroupIds.has(log.groupId)) {
+        processedGroupIds.add(log.groupId)
+        const groupLogs = groups[log.groupId]
+        result.push({
+          logs: groupLogs,
+          isGroup: true,
+          primaryLog: groupLogs[0],
+          totalHours: groupLogs.reduce((sum, l) => sum + l.hours, 0),
+          studentIds: groupLogs.map(l => l.studentId),
+        })
+      }
+    } else {
+      result.push({
+        logs: [log],
+        isGroup: false,
+        primaryLog: log,
+        totalHours: log.hours,
+        studentIds: [log.studentId],
+      })
+    }
+  }
+
+  return result
+})
+
+// Group logs by date (using grouped logs)
+const logsByDate = computed(() => {
+  const groups: Record<string, LogGroup[]> = {}
+  groupedFilteredLogs.value.forEach(logGroup => {
+    const dateKey = getDateOnly(logGroup.primaryLog.date)
     if (!groups[dateKey]) {
       groups[dateKey] = []
     }
-    groups[dateKey].push(log)
+    groups[dateKey].push(logGroup)
   })
   return groups
 })
@@ -272,15 +329,15 @@ onMounted(async () => {
       <div v-for="date in sortedDates" :key="date" class="card">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ formatDate(date) }}</h3>
         <div class="space-y-2">
-          <LogEntryRow 
-            v-for="log in logsByDate[date]" 
-            :key="log.id"
-            :log="log"
-            :student="studentsStore.students.find(s => s.id === log.studentId)"
-            :subject="subjectsStore.subjects.find(s => s.id === log.subjectId)"
+          <GroupedLogRow 
+            v-for="(logGroup, index) in logsByDate[date]" 
+            :key="logGroup.primaryLog.id + '-' + index"
+            :group="logGroup"
+            :students="studentsStore.students"
+            :subjects="subjectsStore.subjects"
             :show-actions="true"
-            @edit="openEditModal(log)"
-            @delete="openDeleteModal(log)"
+            @edit="openEditModal"
+            @delete="openDeleteModal"
           />
         </div>
       </div>

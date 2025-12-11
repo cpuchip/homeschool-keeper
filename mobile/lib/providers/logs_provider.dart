@@ -47,9 +47,75 @@ class LogsState {
     return sorted;
   }
 
+  /// Get logs grouped by groupId for display
+  /// Returns a list of LogGroup (either single log or group of logs with same groupId)
+  List<LogGroup> get groupedLogs {
+    final sorted = sortedByDate;
+    final groups = <String, List<LogEntry>>{};
+    final singles = <LogEntry>[];
+
+    for (final log in sorted) {
+      if (log.groupId != null && log.groupId!.isNotEmpty) {
+        groups.putIfAbsent(log.groupId!, () => []).add(log);
+      } else {
+        singles.add(log);
+      }
+    }
+
+    // Build result: convert groups and singles to LogGroup objects
+    final result = <LogGroup>[];
+    final processedGroupIds = <String>{};
+
+    for (final log in sorted) {
+      if (log.groupId != null && log.groupId!.isNotEmpty) {
+        if (!processedGroupIds.contains(log.groupId)) {
+          processedGroupIds.add(log.groupId!);
+          result.add(
+            LogGroup(
+              logs: groups[log.groupId]!,
+              isGroup: true,
+            ),
+          );
+        }
+      } else {
+        result.add(
+          LogGroup(
+            logs: [log],
+            isGroup: false,
+          ),
+        );
+      }
+    }
+
+    return result;
+  }
+
   /// Get total hours
   double get totalHours =>
       logs.fold(0, (sum, log) => sum + log.hours);
+}
+
+/// Represents a single log or a group of logs with the same groupId
+class LogGroup {
+  final List<LogEntry> logs;
+  final bool isGroup;
+
+  const LogGroup({
+    required this.logs,
+    required this.isGroup,
+  });
+
+  /// The first log in the group (used for display info like date, subject)
+  LogEntry get primaryLog => logs.first;
+
+  /// Total hours across all logs in the group
+  double get totalHours => logs.fold(0.0, (sum, log) => sum + log.hours);
+
+  /// All student IDs in this group
+  List<String> get studentIds => logs.map((l) => l.studentId).toList();
+
+  /// The groupId (null if single log)
+  String? get groupId => isGroup ? logs.first.groupId : null;
 }
 
 /// Notifier for managing logs state (local-first)

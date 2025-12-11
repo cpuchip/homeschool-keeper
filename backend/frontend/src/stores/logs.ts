@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { LogEntry, CreateLogEntry, UpdateLogEntry, LogFilters } from '@/types'
+import type { LogEntry, CreateLogEntry, UpdateLogEntry, LogFilters, CreateMultiStudentLog } from '@/types'
 import { logsApi } from '@/api/logs'
+import { v4 as uuidv4 } from 'uuid'
 
 export const useLogsStore = defineStore('logs', () => {
   // State
@@ -87,6 +88,61 @@ export const useLogsStore = defineStore('logs', () => {
     }
   }
 
+  // Create log entries for multiple students (same activity)
+  async function createMultiStudentLog(data: CreateMultiStudentLog): Promise<LogEntry[]> {
+    if (data.studentIds.length === 0) {
+      throw new Error('No students selected')
+    }
+
+    // Single student - no group needed
+    if (data.studentIds.length === 1) {
+      const log = await createLog({
+        studentId: data.studentIds[0],
+        subjectId: data.subjectId,
+        date: data.date,
+        hours: data.hours,
+        description: data.description,
+        locationType: data.locationType,
+        locationName: data.locationName,
+      })
+      return [log]
+    }
+
+    // Multiple students - generate groupId and create each log
+    loading.value = true
+    error.value = null
+    const groupId = uuidv4()
+    const createdLogs: LogEntry[] = []
+
+    try {
+      for (const studentId of data.studentIds) {
+        const log = await logsApi.create({
+          studentId,
+          subjectId: data.subjectId,
+          date: data.date,
+          hours: data.hours,
+          description: data.description,
+          locationType: data.locationType,
+          locationName: data.locationName,
+          groupId,
+        })
+        createdLogs.push(log)
+      }
+
+      // Add all to beginning of list
+      logs.value.unshift(...createdLogs)
+      total.value += createdLogs.length
+
+      return createdLogs
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string }
+      error.value = err.response?.data?.error || err.message || 'Failed to create logs'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function updateLog(id: string, data: UpdateLogEntry) {
     loading.value = true
     error.value = null
@@ -154,6 +210,7 @@ export const useLogsStore = defineStore('logs', () => {
     fetchLogs,
     fetchLog,
     createLog,
+    createMultiStudentLog,
     updateLog,
     deleteLog,
     clearCurrentLog,
