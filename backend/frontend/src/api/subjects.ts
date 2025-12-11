@@ -46,5 +46,27 @@ export const subjectsApi = {
    */
   async delete(id: string): Promise<void> {
     await api.delete(`/v1/subjects/${id}`)
+  },
+
+  /**
+   * Get all deleted (soft-deleted) subjects
+   */
+  async listDeleted(): Promise<Subject[]> {
+    const response = await api.get('/v1/subjects/deleted')
+    return response.data
+  },
+
+  /**
+   * Restore a soft-deleted subject
+   */
+  async restore(id: string): Promise<void> {
+    await api.post(`/v1/subjects/${id}/restore`)
+  },
+
+  /**
+   * Permanently delete a subject
+   */
+  async hardDelete(id: string): Promise<void> {
+    await api.delete(`/v1/subjects/${id}/permanent`)
   }
 }

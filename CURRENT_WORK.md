@@ -202,18 +202,16 @@
 | Offline mode | Mobile is offline-first, web requires connection |
 | Failsafe backup | Local backup to Documents folder |
 | Sync status indicator | Shows sync status in app bar |
-| Trash/Recycle Bin | View and restore deleted items |
-| PDF Export | Local PDF generation and sharing |
-| CSV Export | Local CSV export |
 
-### ❌ Remaining Parity Gaps
+### ❌ Remaining Parity Gaps (Need Implementation)
 | Feature | Web | Mobile | Priority |
 |---------|-----|--------|----------|
-| Trash view | ❌ Missing | ✅ Done | Low |
-| PDF export | ❌ Missing | ✅ Done | Low |
+| Trash/Recycle view | ❌ Missing | ✅ Done | **High** |
+| PDF export | ❌ Missing | ✅ Done | **High** |
+| CSV export | ❌ Missing | ✅ Done | **High** |
 | School year selector | ✅ Robust | ⚠️ Basic | Medium |
 
-**Note**: Web doesn't need local backup/export since data is server-side. Server-side PDF generation can be added later.
+**Note**: Trash and Export are needed on web for state compliance - parents need to export records and recover deleted items.
 
 ---
 

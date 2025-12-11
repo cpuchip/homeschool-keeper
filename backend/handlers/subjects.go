@@ -259,3 +259,94 @@ func (h *SubjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	NoContent(w)
 }
+
+// ListDeleted handles GET /api/v1/subjects/deleted
+func (h *SubjectHandler) ListDeleted(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetUserFromContext(r.Context())
+	if session == nil {
+		Unauthorized(w)
+		return
+	}
+
+	familyID, err := auth.FamilyIDToObjectID(session)
+	if err != nil {
+		Unauthorized(w)
+		return
+	}
+
+	subjects, err := h.subjects.GetDeleted(r.Context(), familyID)
+	if err != nil {
+		InternalError(w)
+		return
+	}
+
+	if subjects == nil {
+		subjects = []models.Subject{}
+	}
+
+	JSON(w, http.StatusOK, subjects)
+}
+
+// Restore handles POST /api/v1/subjects/{id}/restore
+func (h *SubjectHandler) Restore(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetUserFromContext(r.Context())
+	if session == nil {
+		Unauthorized(w)
+		return
+	}
+
+	familyID, err := auth.FamilyIDToObjectID(session)
+	if err != nil {
+		Unauthorized(w)
+		return
+	}
+
+	subjectID, err := ParseID(r, "id")
+	if err != nil {
+		BadRequest(w, "Invalid subject ID")
+		return
+	}
+
+	if err := h.subjects.Restore(r.Context(), familyID, subjectID); err != nil {
+		if err == repository.ErrSubjectNotFound {
+			NotFound(w, "Subject not found in trash")
+			return
+		}
+		InternalError(w)
+		return
+	}
+
+	NoContent(w)
+}
+
+// HardDelete handles DELETE /api/v1/subjects/{id}/permanent
+func (h *SubjectHandler) HardDelete(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetUserFromContext(r.Context())
+	if session == nil {
+		Unauthorized(w)
+		return
+	}
+
+	familyID, err := auth.FamilyIDToObjectID(session)
+	if err != nil {
+		Unauthorized(w)
+		return
+	}
+
+	subjectID, err := ParseID(r, "id")
+	if err != nil {
+		BadRequest(w, "Invalid subject ID")
+		return
+	}
+
+	if err := h.subjects.HardDelete(r.Context(), familyID, subjectID); err != nil {
+		if err == repository.ErrSubjectNotFound {
+			NotFound(w, "Subject not found")
+			return
+		}
+		InternalError(w)
+		return
+	}
+
+	NoContent(w)
+}

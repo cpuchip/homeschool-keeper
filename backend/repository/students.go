@@ -123,6 +123,60 @@ func (r *StudentRepository) SoftDelete(ctx context.Context, familyID, id primiti
 	return r.Update(ctx, familyID, id, bson.M{"active": false})
 }
 
+// Restore reactivates a soft-deleted student - MUST include familyID
+func (r *StudentRepository) Restore(ctx context.Context, familyID, id primitive.ObjectID) error {
+	update := bson.M{
+		"active":    true,
+		"updatedAt": time.Now().UTC(),
+	}
+	result, err := r.coll.UpdateOne(ctx, bson.M{
+		"_id":      id,
+		"familyId": familyID,
+		"active":   false,
+	}, bson.M{"$set": update})
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return ErrStudentNotFound
+	}
+	return nil
+}
+
+// GetDeleted retrieves all soft-deleted students for a family
+func (r *StudentRepository) GetDeleted(ctx context.Context, familyID primitive.ObjectID) ([]models.Student, error) {
+	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	cursor, err := r.coll.Find(ctx, bson.M{
+		"familyId": familyID,
+		"active":   false,
+	}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var students []models.Student
+	if err := cursor.All(ctx, &students); err != nil {
+		return nil, err
+	}
+	return students, nil
+}
+
+// HardDelete permanently removes a student - MUST include familyID
+func (r *StudentRepository) HardDelete(ctx context.Context, familyID, id primitive.ObjectID) error {
+	result, err := r.coll.DeleteOne(ctx, bson.M{
+		"_id":      id,
+		"familyId": familyID,
+	})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return ErrStudentNotFound
+	}
+	return nil
+}
+
 // Count returns the number of active students in a family
 func (r *StudentRepository) Count(ctx context.Context, familyID primitive.ObjectID) (int64, error) {
 	return r.coll.CountDocuments(ctx, bson.M{"familyId": familyID, "active": true})

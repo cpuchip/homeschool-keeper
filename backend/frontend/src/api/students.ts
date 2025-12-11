@@ -52,5 +52,27 @@ export const studentsApi = {
    */
   async delete(id: string): Promise<void> {
     await api.delete(`/v1/students/${id}`)
+  },
+
+  /**
+   * Get all deleted (soft-deleted) students
+   */
+  async listDeleted(): Promise<Student[]> {
+    const response = await api.get('/v1/students/deleted')
+    return response.data
+  },
+
+  /**
+   * Restore a soft-deleted student
+   */
+  async restore(id: string): Promise<void> {
+    await api.post(`/v1/students/${id}/restore`)
+  },
+
+  /**
+   * Permanently delete a student
+   */
+  async hardDelete(id: string): Promise<void> {
+    await api.delete(`/v1/students/${id}/permanent`)
   }
 }

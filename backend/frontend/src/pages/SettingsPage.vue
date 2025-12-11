@@ -403,6 +403,37 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Data Management -->
+    <div class="card">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Data Management</h2>
+      <div class="space-y-4">
+        <router-link 
+          to="/export" 
+          class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+        >
+          <div>
+            <h3 class="font-medium text-gray-900">Export Data</h3>
+            <p class="text-sm text-gray-500">Download PDF reports or CSV exports for state compliance</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </router-link>
+        <router-link 
+          to="/trash" 
+          class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+        >
+          <div>
+            <h3 class="font-medium text-gray-900">Trash</h3>
+            <p class="text-sm text-gray-500">View and restore deleted students and subjects</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </router-link>
+      </div>
+    </div>
+
     <!-- Save Button -->
     <div class="flex justify-end">
       <button 

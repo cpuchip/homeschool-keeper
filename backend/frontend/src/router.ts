@@ -61,6 +61,16 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: () => import('@/pages/SettingsPage.vue')
+        },
+        {
+          path: 'trash',
+          name: 'trash',
+          component: () => import('@/pages/TrashPage.vue')
+        },
+        {
+          path: 'export',
+          name: 'export',
+          component: () => import('@/pages/ExportPage.vue')
         }
       ]
     },
