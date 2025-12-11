@@ -128,10 +128,16 @@
   - Web: Added input field + type selector + remove button for custom subjects
   - Mobile: Created OnboardingScreen with 3 steps (school year, subjects, students)
 - [x] **Add/edit/remove subjects** - Full CRUD in Subjects page ✅ Done (verified working)
-- [ ] **Soft delete protection** - Warn if deleting subject with attached logs, mark as deleted not hard-delete
-- [ ] **Trash/Recycle Bin view** - View deleted items (students, subjects, logs) across all screens
-- [ ] **Restore from trash** - Undelete soft-deleted items
-- [ ] **Permanent delete** - Hard delete from trash (with confirmation, logs check)
+- [x] **Soft delete protection** - Warn if deleting subject with attached logs ✅ Done Dec 11
+  - Shows orange warning with log count before deleting
+  - Button text changes to "Hide Student/Subject" when logs exist
+  - Snackbar with Undo action after delete
+- [x] **Trash/Recycle Bin view** - View deleted items ✅ Done Dec 11
+  - TrashScreen with tabs for Students and Subjects
+  - Shows log count badge for each item
+  - Accessible from Settings → Trash
+- [x] **Restore from trash** - Undelete soft-deleted items ✅ Done Dec 11
+- [x] **Permanent delete** - Hard delete with confirmation and log warning ✅ Done Dec 11
 
 ### 3.3 Advanced Features
 - [ ] **Google OAuth** - Social login option
