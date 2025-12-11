@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const initialized = ref(false)
+  const selectedSchoolYear = ref<string>('')
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -28,6 +29,23 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
     return ''
+  })
+
+  // Generate list of available school years (current year + past 5 years)
+  const availableSchoolYears = computed(() => {
+    const years: string[] = []
+    const currentYear = new Date().getFullYear()
+    // Generate years from current back to 5 years ago
+    for (let i = 0; i <= 5; i++) {
+      const startYear = currentYear - i
+      years.push(`${startYear}-${startYear + 1}`)
+    }
+    return years
+  })
+
+  // Get the effective school year to use for API calls
+  const effectiveSchoolYear = computed(() => {
+    return selectedSchoolYear.value || currentSchoolYear.value
   })
 
   // Actions
@@ -96,6 +114,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function setSelectedSchoolYear(year: string) {
+    selectedSchoolYear.value = year
+  }
+
   return {
     // State
     user,
@@ -103,14 +125,18 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     initialized,
+    selectedSchoolYear,
     // Getters
     isAuthenticated,
     currentSchoolYear,
+    availableSchoolYears,
+    effectiveSchoolYear,
     // Actions
     login,
     register,
     logout,
     fetchUser,
-    updateFamily
+    updateFamily,
+    setSelectedSchoolYear
   }
 })

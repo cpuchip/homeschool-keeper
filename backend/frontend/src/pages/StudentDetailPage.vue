@@ -5,7 +5,8 @@ import { useStudentsStore } from '@/stores/students'
 import { useStatsStore } from '@/stores/stats'
 import { useLogsStore } from '@/stores/logs'
 import { useSubjectsStore } from '@/stores/subjects'
-import { ProgressBar, LogEntryRow, BaseModal } from '@/components/common'
+import { useAuthStore } from '@/stores/auth'
+import { ProgressBar, LogEntryRow, BaseModal, SchoolYearSelector } from '@/components/common'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,7 @@ const studentsStore = useStudentsStore()
 const statsStore = useStatsStore()
 const logsStore = useLogsStore()
 const subjectsStore = useSubjectsStore()
+const authStore = useAuthStore()
 
 const studentId = computed(() => route.params.id as string)
 const loading = ref(true)
@@ -118,10 +120,21 @@ async function loadData() {
     }
     
     // Fetch stats for this student
-    await statsStore.fetchStudentStats(studentId.value)
+    await statsStore.fetchStudentStats(studentId.value, authStore.effectiveSchoolYear)
     
     // Fetch recent logs for this student
-    await logsStore.fetchLogs({ studentId: studentId.value })
+    await logsStore.fetchLogs({ studentId: studentId.value, schoolYear: authStore.effectiveSchoolYear })
+  } finally {
+    loading.value = false
+  }
+}
+
+// Refresh data when school year changes
+async function onSchoolYearChange(year: string) {
+  loading.value = true
+  try {
+    await statsStore.fetchStudentStats(studentId.value, year)
+    await logsStore.fetchLogs({ studentId: studentId.value, schoolYear: year })
   } finally {
     loading.value = false
   }
@@ -140,7 +153,7 @@ onMounted(() => {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex justify-between items-start">
+    <div class="flex justify-between items-start flex-wrap gap-4">
       <div>
         <button 
           type="button"
@@ -160,7 +173,8 @@ onMounted(() => {
           Inactive
         </span>
       </div>
-      <div class="flex space-x-2">
+      <div class="flex items-center gap-4">
+        <SchoolYearSelector @change="onSchoolYearChange" />
         <button type="button" class="btn-secondary" @click="openEditModal">
           Edit Student
         </button>

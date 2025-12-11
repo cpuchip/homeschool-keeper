@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useStudentsStore } from '@/stores/students'
 import { useStatsStore } from '@/stores/stats'
 import { useLogsStore } from '@/stores/logs'
-import { StudentCard, ProgressBar } from '@/components/common'
+import { StudentCard, ProgressBar, SchoolYearSelector } from '@/components/common'
 
 const authStore = useAuthStore()
 const studentsStore = useStudentsStore()
@@ -15,10 +15,18 @@ const logsStore = useLogsStore()
 onMounted(async () => {
   await Promise.all([
     studentsStore.fetchStudents(),
-    statsStore.fetchFamilyStats(authStore.currentSchoolYear),
-    logsStore.fetchLogs({ limit: 5 })
+    statsStore.fetchFamilyStats(authStore.effectiveSchoolYear),
+    logsStore.fetchLogs({ limit: 5, schoolYear: authStore.effectiveSchoolYear })
   ])
 })
+
+// Refresh data when school year changes
+async function onSchoolYearChange(year: string) {
+  await Promise.all([
+    statsStore.fetchFamilyStats(year),
+    logsStore.fetchLogs({ limit: 5, schoolYear: year })
+  ])
+}
 
 const students = computed(() => studentsStore.activeStudents)
 const familyStats = computed(() => statsStore.familyStats)
@@ -41,16 +49,19 @@ const todayHours = computed(() => {
 
 <template>
   <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p v-if="authStore.family" class="text-sm text-gray-500">
-          {{ authStore.family.name }} • {{ authStore.currentSchoolYear }}
+          {{ authStore.family.name }}
         </p>
       </div>
-      <router-link to="/log" class="btn-primary">
-        + Quick Log
-      </router-link>
+      <div class="flex items-center gap-4">
+        <SchoolYearSelector @change="onSchoolYearChange" />
+        <router-link to="/log" class="btn-primary">
+          + Quick Log
+        </router-link>
+      </div>
     </div>
 
     <!-- Loading State -->

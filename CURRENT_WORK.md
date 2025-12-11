@@ -109,7 +109,7 @@
 
 ### 2.3 Web UX Improvements
 - [x] **Location management** - CRUD for saved locations (field trips, co-ops) ✅ Done Dec 10
-- [ ] **Multi-year switching** - View/filter by school year
+- [x] **Multi-year switching** - View/filter by school year ✅ Done Dec 10
 - [ ] **Archive school year** - Mark year as read-only
 - [ ] **Better error handling** - Toast notifications instead of console logs
 
@@ -153,7 +153,7 @@
 ### Next Week
 1. **Conflict resolution** - Handle sync conflicts gracefully
 2. ~~**Location management**~~ - Web CRUD for saved locations ✅ Done Dec 10
-3. **Multi-year support** - Switch between school years
+3. ~~**Multi-year support**~~ - Switch between school years ✅ Done Dec 10
 4. **Pull-to-refresh** on mobile list screens
 
 ---

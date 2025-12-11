@@ -3,12 +3,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useLogsStore } from '@/stores/logs'
 import { useStudentsStore } from '@/stores/students'
 import { useSubjectsStore } from '@/stores/subjects'
-import { LogEntryRow, BaseModal } from '@/components/common'
+import { useAuthStore } from '@/stores/auth'
+import { LogEntryRow, BaseModal, SchoolYearSelector } from '@/components/common'
 import type { LogEntry } from '@/types'
 
 const logsStore = useLogsStore()
 const studentsStore = useStudentsStore()
 const subjectsStore = useSubjectsStore()
+const authStore = useAuthStore()
 
 // Filters
 const studentFilter = ref('')
@@ -147,13 +149,26 @@ function clearFilters() {
   endDate.value = ''
 }
 
-// Fetch logs when filters change
-watch([studentFilter, subjectFilter, startDate, endDate], async () => {
-  const filters: { studentId?: string; subjectId?: string; startDate?: string; endDate?: string } = {}
+// Refresh logs when school year changes
+async function onSchoolYearChange(year: string) {
+  const filters: { studentId?: string; subjectId?: string; startDate?: string; endDate?: string; schoolYear?: string } = {}
   if (studentFilter.value) filters.studentId = studentFilter.value
   if (subjectFilter.value) filters.subjectId = subjectFilter.value
   if (startDate.value) filters.startDate = startDate.value
   if (endDate.value) filters.endDate = endDate.value
+  filters.schoolYear = year
+  
+  await logsStore.fetchLogs(filters)
+}
+
+// Fetch logs when filters change
+watch([studentFilter, subjectFilter, startDate, endDate], async () => {
+  const filters: { studentId?: string; subjectId?: string; startDate?: string; endDate?: string; schoolYear?: string } = {}
+  if (studentFilter.value) filters.studentId = studentFilter.value
+  if (subjectFilter.value) filters.subjectId = subjectFilter.value
+  if (startDate.value) filters.startDate = startDate.value
+  if (endDate.value) filters.endDate = endDate.value
+  filters.schoolYear = authStore.effectiveSchoolYear
   
   await logsStore.fetchLogs(filters)
 })
@@ -166,15 +181,18 @@ onMounted(async () => {
   if (subjectsStore.subjects.length === 0) {
     await subjectsStore.fetchSubjects()
   }
-  await logsStore.fetchLogs({})
+  await logsStore.fetchLogs({ schoolYear: authStore.effectiveSchoolYear })
 })
 </script>
 
 <template>
   <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center flex-wrap gap-4">
       <h1 class="text-2xl font-bold text-gray-900">Log History</h1>
-      <router-link to="/log" class="btn-primary">+ New Log</router-link>
+      <div class="flex items-center gap-4">
+        <SchoolYearSelector @change="onSchoolYearChange" />
+        <router-link to="/log" class="btn-primary">+ New Log</router-link>
+      </div>
     </div>
 
     <!-- Filters -->
