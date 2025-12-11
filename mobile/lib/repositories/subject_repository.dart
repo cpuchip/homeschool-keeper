@@ -21,6 +21,12 @@ class SubjectRepository {
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
   }
 
+  /// Get only deleted (inactive) subjects
+  List<Subject> getDeleted() {
+    return _db.subjectsBox.values.where((s) => !s.active).map(_toModel).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)); // Most recently deleted first
+  }
+
   /// Get core subjects only
   List<Subject> getCoreSubjects() {
     return _db.subjectsBox.values

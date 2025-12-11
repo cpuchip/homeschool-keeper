@@ -9,6 +9,7 @@ import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/students/presentation/students_screen.dart';
 import '../features/subjects/presentation/subjects_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/settings/presentation/trash_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../providers/auth_provider.dart';
 
@@ -78,6 +79,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/trash',
+            builder: (context, state) => const TrashScreen(),
           ),
         ],
       ),

@@ -445,6 +445,14 @@ class _DataSyncCard extends ConsumerWidget {
               // TODO: Navigate to export screen
             },
           ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Trash'),
+            subtitle: const Text('View deleted items'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/trash'),
+          ),
         ],
       ),
     );

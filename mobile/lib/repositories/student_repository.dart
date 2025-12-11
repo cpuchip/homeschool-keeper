@@ -21,6 +21,12 @@ class StudentRepository {
       ..sort((a, b) => a.name.compareTo(b.name));
   }
 
+  /// Get only deleted (inactive) students
+  List<Student> getDeleted() {
+    return _db.studentsBox.values.where((s) => !s.active).map(_toModel).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)); // Most recently deleted first
+  }
+
   /// Get a student by ID
   Student? getById(String id) {
     final entity = _db.studentsBox.get(id);
