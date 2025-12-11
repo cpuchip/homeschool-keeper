@@ -22,6 +22,7 @@ class SyncResult {
   final int pulledStudents;
   final int pulledSubjects;
   final int pulledLogs;
+  final int conflicts;
   final DateTime syncedAt;
 
   SyncResult({
@@ -33,6 +34,7 @@ class SyncResult {
     this.pulledStudents = 0,
     this.pulledSubjects = 0,
     this.pulledLogs = 0,
+    this.conflicts = 0,
     DateTime? syncedAt,
   }) : syncedAt = syncedAt ?? DateTime.now();
 
@@ -47,6 +49,7 @@ class SyncResult {
     int pulledStudents = 0,
     int pulledSubjects = 0,
     int pulledLogs = 0,
+    int conflicts = 0,
   }) {
     return SyncResult(
       success: true,
@@ -56,11 +59,13 @@ class SyncResult {
       pulledStudents: pulledStudents,
       pulledSubjects: pulledSubjects,
       pulledLogs: pulledLogs,
+      conflicts: conflicts,
     );
   }
 
   int get totalPushed => pushedStudents + pushedSubjects + pushedLogs;
   int get totalPulled => pulledStudents + pulledSubjects + pulledLogs;
+  bool get hasConflicts => conflicts > 0;
 }
 
 /// Sync service for pushing/pulling data between Hive and server
@@ -105,6 +110,9 @@ class SyncService {
       Log.sync.d('Pulling server data${since != null ? ' since $since' : ''}...');
       final pullResult = await _pullServerData(since: since);
       Log.sync.d('Pulled: ${pullResult.students} students, ${pullResult.subjects} subjects, ${pullResult.logs} logs');
+      if (pullResult.conflicts > 0) {
+        Log.sync.w('${pullResult.conflicts} conflicts detected (server wins)');
+      }
 
       // Update sync metadata
       await _updateSyncMeta();
@@ -119,6 +127,7 @@ class SyncService {
         pulledStudents: pullResult.students,
         pulledSubjects: pullResult.subjects,
         pulledLogs: pullResult.logs,
+        conflicts: pullResult.conflicts,
       );
     } catch (e, stack) {
       _status = SyncStatus.error;
@@ -252,6 +261,7 @@ class SyncService {
     int students = 0;
     int subjects = 0;
     int logs = 0;
+    int conflicts = 0;
 
     // Build query params for incremental sync
     final queryParams = since != null 
@@ -267,7 +277,8 @@ class SyncService {
       final serverStudents = (response.data as List<dynamic>?) ?? [];
       
       for (final json in serverStudents) {
-        await _mergeStudent(json as Map<String, dynamic>);
+        final hadConflict = await _mergeStudent(json as Map<String, dynamic>);
+        if (hadConflict) conflicts++;
         students++;
       }
     } catch (e) {
@@ -284,7 +295,8 @@ class SyncService {
       final serverSubjects = (response.data as List<dynamic>?) ?? [];
       
       for (final json in serverSubjects) {
-        await _mergeSubject(json as Map<String, dynamic>);
+        final hadConflict = await _mergeSubject(json as Map<String, dynamic>);
+        if (hadConflict) conflicts++;
         subjects++;
       }
     } catch (e) {
@@ -303,7 +315,8 @@ class SyncService {
       final serverLogs = (data?['logs'] as List<dynamic>?) ?? [];
       
       for (final json in serverLogs) {
-        await _mergeLog(json as Map<String, dynamic>);
+        final hadConflict = await _mergeLog(json as Map<String, dynamic>);
+        if (hadConflict) conflicts++;
         logs++;
       }
     } catch (e) {
@@ -311,7 +324,7 @@ class SyncService {
       rethrow;
     }
 
-    return _PushPullCounts(students: students, subjects: subjects, logs: logs);
+    return _PushPullCounts(students: students, subjects: subjects, logs: logs, conflicts: conflicts);
   }
 
   // === Student sync helpers ===
@@ -350,9 +363,11 @@ class SyncService {
     await student.save();
   }
 
-  Future<void> _mergeStudent(Map<String, dynamic> json) async {
+  /// Merge student from server. Returns true if local changes were overwritten (conflict).
+  Future<bool> _mergeStudent(Map<String, dynamic> json) async {
     final serverId = json['id'] as String;
     final serverUpdatedAt = DateTime.parse(json['updatedAt'] as String);
+    bool hadConflict = false;
     
     // Find local student by remoteId
     StudentEntity? local;
@@ -364,6 +379,11 @@ class SyncService {
     }
     
     if (local != null) {
+      // Conflict: local has unsaved changes AND server is newer
+      if (local.needsSync && serverUpdatedAt.isAfter(local.updatedAt)) {
+        hadConflict = true;
+        Log.sync.w('Conflict detected for student ${local.name}: server wins');
+      }
       // Compare timestamps - server wins if newer
       if (serverUpdatedAt.isAfter(local.updatedAt) || !local.needsSync) {
         local.name = json['name'] as String;
@@ -393,6 +413,7 @@ class SyncService {
       
       await _db.studentsBox.put(entity.id, entity);
     }
+    return hadConflict;
   }
 
   // === Subject sync helpers ===
@@ -433,9 +454,11 @@ class SyncService {
     await subject.save();
   }
 
-  Future<void> _mergeSubject(Map<String, dynamic> json) async {
+  /// Merge subject from server. Returns true if local changes were overwritten (conflict).
+  Future<bool> _mergeSubject(Map<String, dynamic> json) async {
     final serverId = json['id'] as String;
     final serverUpdatedAt = DateTime.parse(json['updatedAt'] as String);
+    bool hadConflict = false;
     
     // Find local subject by remoteId
     SubjectEntity? local;
@@ -447,6 +470,11 @@ class SyncService {
     }
     
     if (local != null) {
+      // Conflict: local has unsaved changes AND server is newer
+      if (local.needsSync && serverUpdatedAt.isAfter(local.updatedAt)) {
+        hadConflict = true;
+        Log.sync.w('Conflict detected for subject ${local.name}: server wins');
+      }
       // Server wins if newer or local doesn't need sync
       if (serverUpdatedAt.isAfter(local.updatedAt) || !local.needsSync) {
         local.name = json['name'] as String;
@@ -481,6 +509,7 @@ class SyncService {
       
       await _db.subjectsBox.put(entity.id, entity);
     }
+    return hadConflict;
   }
 
   // === Log entry sync helpers ===
@@ -538,9 +567,11 @@ class SyncService {
     await log.save();
   }
 
-  Future<void> _mergeLog(Map<String, dynamic> json) async {
+  /// Merge log from server. Returns true if local changes were overwritten (conflict).
+  Future<bool> _mergeLog(Map<String, dynamic> json) async {
     final serverId = json['id'] as String;
     final serverUpdatedAt = DateTime.parse(json['updatedAt'] as String);
+    bool hadConflict = false;
     
     // Find local log by remoteId
     LogEntryEntity? local;
@@ -558,6 +589,11 @@ class SyncService {
     final localSubjectId = _getLocalSubjectId(serverSubjectId) ?? serverSubjectId;
     
     if (local != null) {
+      // Conflict: local has unsaved changes AND server is newer
+      if (local.needsSync && serverUpdatedAt.isAfter(local.updatedAt)) {
+        hadConflict = true;
+        Log.sync.w('Conflict detected for log ${local.id}: server wins');
+      }
       // Server wins if newer
       if (serverUpdatedAt.isAfter(local.updatedAt) || !local.needsSync) {
         local.studentId = localStudentId;
@@ -600,6 +636,7 @@ class SyncService {
       
       await _db.logEntriesBox.put(entity.id, entity);
     }
+    return hadConflict;
   }
 
   // === ID mapping helpers ===
@@ -666,10 +703,12 @@ class _PushPullCounts {
   final int students;
   final int subjects;
   final int logs;
+  final int conflicts;
 
   _PushPullCounts({
     this.students = 0,
     this.subjects = 0,
     this.logs = 0,
+    this.conflicts = 0,
   });
 }

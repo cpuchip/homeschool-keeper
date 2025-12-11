@@ -219,12 +219,20 @@ class SyncButton extends ConsumerWidget {
     
     if (context.mounted) {
       if (result.success) {
+        // Build message with conflict info if any
+        String message = 'Synced: ${result.totalPushed} pushed, ${result.totalPulled} pulled';
+        Color? backgroundColor;
+        
+        if (result.hasConflicts) {
+          message = 'Synced with ${result.conflicts} conflict${result.conflicts > 1 ? 's' : ''} (server wins)';
+          backgroundColor = Colors.orange.shade700;
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Synced: ${result.totalPushed} pushed, ${result.totalPulled} pulled',
-            ),
-            duration: const Duration(seconds: 2),
+            content: Text(message),
+            backgroundColor: backgroundColor,
+            duration: Duration(seconds: result.hasConflicts ? 4 : 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
