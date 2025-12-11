@@ -203,10 +203,12 @@ class _ConflictResolutionScreenState extends State<ConflictResolutionScreen> {
                   const SizedBox(height: 16),
 
                   // Field diffs
-                  ...conflict.fieldDiffs.map((diff) => _buildFieldComparison(
-                        diff,
-                        theme,
-                      )),
+                  ...conflict.fieldDiffs.map(
+                    (diff) => _buildFieldComparison(
+                      diff,
+                      theme,
+                    ),
+                  ),
 
                   if (conflict.fieldDiffs.isEmpty)
                     Card(

@@ -394,6 +394,11 @@ class _DataSyncCard extends ConsumerWidget {
                 : IconButton(
                     icon: const Icon(Icons.refresh),
                     onPressed: () async {
+                      // Capture context-dependent values before async operations
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      final errorColor = Theme.of(context).colorScheme.error;
+                      
                       final result = await ref
                           .read(syncProvider.notifier)
                           .performFullSync();
@@ -401,7 +406,7 @@ class _DataSyncCard extends ConsumerWidget {
                       if (context.mounted) {
                         if (result.success && result.hasConflicts) {
                           // Show conflict resolution dialog
-                          final resolutions = await Navigator.of(context).push<List<ResolvedConflict>>(
+                          final resolutions = await navigator.push<List<ResolvedConflict>>(
                             MaterialPageRoute(
                               builder: (context) => ConflictResolutionScreen(
                                 conflicts: result.conflictItems,
@@ -411,21 +416,19 @@ class _DataSyncCard extends ConsumerWidget {
                           
                           if (resolutions != null && context.mounted) {
                             await ref.read(syncProvider.notifier).applyConflictResolutions(resolutions);
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               const SnackBar(content: Text('Conflicts resolved')),
                             );
                           }
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          scaffoldMessenger.showSnackBar(
                             SnackBar(
                               content: Text(
                                 result.success
                                     ? 'Synced ${result.totalPulled} items'
                                     : 'Sync failed: ${result.error}',
                               ),
-                              backgroundColor: result.success
-                                  ? null
-                                  : Theme.of(context).colorScheme.error,
+                              backgroundColor: result.success ? null : errorColor,
                             ),
                           );
                         }

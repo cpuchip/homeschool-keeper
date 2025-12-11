@@ -180,7 +180,8 @@ class SyncNotifier extends StateNotifier<SyncState> {
 
   /// Apply user's conflict resolutions
   Future<int> applyConflictResolutions(
-      List<ResolvedConflict> resolutions) async {
+    List<ResolvedConflict> resolutions,
+  ) async {
     final resolved = await _syncService.applyConflictResolutions(resolutions);
     state = state.copyWith(
       pendingChanges: _syncService.getPendingChangesCount(),

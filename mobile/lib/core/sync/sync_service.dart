@@ -108,7 +108,8 @@ class SyncService {
       Log.sync.d('Pushing local changes...');
       final pushResult = await _pushLocalChanges();
       Log.sync.d(
-          'Pushed: ${pushResult.students} students, ${pushResult.subjects} subjects, ${pushResult.logs} logs');
+        'Pushed: ${pushResult.students} students, ${pushResult.subjects} subjects, ${pushResult.logs} logs',
+      );
 
       // Then pull server data (use last sync time for incremental sync)
       final since = incremental ? getLastSyncTime() : null;
@@ -116,7 +117,8 @@ class SyncService {
           .d('Pulling server data${since != null ? ' since $since' : ''}...');
       final pullResult = await _pullServerData(since: since);
       Log.sync.d(
-          'Pulled: ${pullResult.students} students, ${pullResult.subjects} subjects, ${pullResult.logs} logs');
+        'Pulled: ${pullResult.students} students, ${pullResult.subjects} subjects, ${pullResult.logs} logs',
+      );
       if (pullResult.conflictItems.isNotEmpty) {
         Log.sync.w('${pullResult.conflictItems.length} conflicts detected');
       }
@@ -126,7 +128,8 @@ class SyncService {
 
       _status = SyncStatus.success;
       Log.sync.d(
-          '${incremental ? 'Incremental' : 'Full'} sync completed successfully!');
+        '${incremental ? 'Incremental' : 'Full'} sync completed successfully!',
+      );
 
       return SyncResult.success(
         pushedStudents: pushResult.students,
@@ -330,10 +333,11 @@ class SyncService {
     }
 
     return _PushPullCounts(
-        students: students,
-        subjects: subjects,
-        logs: logs,
-        conflictItems: conflictItems);
+      students: students,
+      subjects: subjects,
+      logs: logs,
+      conflictItems: conflictItems,
+    );
   }
 
   // === Student sync helpers ===
@@ -597,7 +601,8 @@ class SyncService {
     final subjectRemoteId = _getRemoteSubjectId(log.subjectId);
 
     Log.sync.d(
-        'Creating log ${log.id}: studentId=${log.studentId}->$studentRemoteId, subjectId=${log.subjectId}->$subjectRemoteId');
+      'Creating log ${log.id}: studentId=${log.studentId}->$studentRemoteId, subjectId=${log.subjectId}->$subjectRemoteId',
+    );
 
     if (studentRemoteId == null || subjectRemoteId == null) {
       Log.sync.w('Cannot sync log: missing remote student or subject ID');
@@ -845,7 +850,8 @@ class SyncService {
   /// Apply conflict resolutions chosen by the user
   /// Returns the number of conflicts resolved
   Future<int> applyConflictResolutions(
-      List<ResolvedConflict> resolutions) async {
+      List<ResolvedConflict> resolutions,
+  ) async {
     int resolvedCount = 0;
 
     for (final resolution in resolutions) {
@@ -876,9 +882,11 @@ class SyncService {
     }
 
     // If any conflicts were resolved with keepLocal, push changes
-    final hasLocalChanges = resolutions.any((r) =>
-        r.resolution == ConflictResolution.keepLocal ||
-        r.resolution == ConflictResolution.keepBoth);
+    final hasLocalChanges = resolutions.any(
+      (r) =>
+          r.resolution == ConflictResolution.keepLocal ||
+          r.resolution == ConflictResolution.keepBoth,
+    );
 
     if (hasLocalChanges) {
       await pushChanges();

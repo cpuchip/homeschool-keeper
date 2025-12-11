@@ -216,52 +216,59 @@ class SyncButton extends ConsumerWidget {
 
   Future<void> _triggerSync(WidgetRef ref, BuildContext context) async {
     final syncNotifier = ref.read(syncProvider.notifier);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
     final result = await syncNotifier.performFullSync();
-    
-    if (context.mounted) {
-      if (result.success) {
-        // Check for conflicts and show resolution dialog
-        if (result.hasConflicts) {
-          final resolutions = await Navigator.of(context).push<List<ResolvedConflict>>(
-            MaterialPageRoute(
-              builder: (context) => ConflictResolutionScreen(
-                conflicts: result.conflictItems,
-              ),
+
+    if (!context.mounted) return;
+
+    if (result.success) {
+      // Check for conflicts and show resolution dialog
+      if (result.hasConflicts) {
+        final resolutions = await navigator.push<List<ResolvedConflict>>(
+          MaterialPageRoute(
+            builder: (context) => ConflictResolutionScreen(
+              conflicts: result.conflictItems,
             ),
-          );
-          
-          // Apply resolutions if user didn't cancel
-          if (resolutions != null && context.mounted) {
-            final resolved = await syncNotifier.applyConflictResolutions(resolutions);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Resolved $resolved conflict${resolved == 1 ? '' : 's'}'),
-                backgroundColor: Colors.green.shade700,
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        } else {
-          // No conflicts - show simple success message
-          ScaffoldMessenger.of(context).showSnackBar(
+          ),
+        );
+
+        // Apply resolutions if user didn't cancel
+        if (resolutions != null) {
+          final resolved =
+              await syncNotifier.applyConflictResolutions(resolutions);
+          scaffoldMessenger.showSnackBar(
             SnackBar(
-              content: Text('Synced: ${result.totalPushed} pushed, ${result.totalPulled} pulled'),
+              content:
+                  Text('Resolved $resolved conflict${resolved == 1 ? '' : 's'}'),
+              backgroundColor: Colors.green.shade700,
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        // No conflicts - show simple success message
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('Sync failed: ${result.error}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 3),
+            content: Text(
+              'Synced: ${result.totalPushed} pushed, ${result.totalPulled} pulled',
+            ),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
+    } else {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Sync failed: ${result.error}'),
+          backgroundColor: errorColor,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }
