@@ -195,6 +195,9 @@
 | Onboarding | ✅ | ✅ |
 | Custom subjects | ✅ | ✅ |
 | Settings page | ✅ | ✅ |
+| Trash/Recycle view | ✅ | ✅ |
+| PDF export | ✅ | ✅ |
+| CSV export | ✅ | ✅ |
 
 ### ⚠️ Mobile-Only Features (by design)
 | Feature | Notes |
@@ -203,15 +206,12 @@
 | Failsafe backup | Local backup to Documents folder |
 | Sync status indicator | Shows sync status in app bar |
 
-### ❌ Remaining Parity Gaps (Need Implementation)
+### ⚠️ Minor Parity Gaps (Low Priority)
 | Feature | Web | Mobile | Priority |
 |---------|-----|--------|----------|
-| Trash/Recycle view | ❌ Missing | ✅ Done | **High** |
-| PDF export | ❌ Missing | ✅ Done | **High** |
-| CSV export | ❌ Missing | ✅ Done | **High** |
-| School year selector | ✅ Robust | ⚠️ Basic | Medium |
+| School year selector | ✅ Robust | ⚠️ Basic | Low |
 
-**Note**: Trash and Export are needed on web for state compliance - parents need to export records and recover deleted items.
+**Note**: Web now has full parity with mobile for core features including Trash and Export!
 
 ---
 
