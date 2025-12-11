@@ -5,6 +5,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/logs/presentation/quick_log_screen.dart';
 import '../features/logs/presentation/logs_screen.dart';
+import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/students/presentation/students_screen.dart';
 import '../features/subjects/presentation/subjects_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -44,6 +45,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       
       // App routes (with shell)

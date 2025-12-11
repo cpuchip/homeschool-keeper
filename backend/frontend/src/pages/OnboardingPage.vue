@@ -104,6 +104,58 @@ function prevStep() {
   }
 }
 
+// Custom subject
+const newSubjectName = ref('')
+const newSubjectType = ref<'core' | 'elective'>('elective')
+
+// Available colors for custom subjects
+const subjectColors = [
+  '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EC4899',
+  '#06B6D4', '#F97316', '#84CC16', '#14B8A6', '#EF4444'
+]
+
+function addCustomSubject() {
+  const name = newSubjectName.value.trim()
+  if (!name) return
+  
+  // Check if subject already exists
+  if (availableSubjects.value.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+    return
+  }
+  
+  // Pick a random color from available colors
+  const usedColors = availableSubjects.value.map(s => s.color)
+  const availableColors = subjectColors.filter(c => !usedColors.includes(c))
+  const color = availableColors.length > 0 
+    ? availableColors[Math.floor(Math.random() * availableColors.length)]
+    : subjectColors[Math.floor(Math.random() * subjectColors.length)]
+  
+  // Add new subject
+  const newSubject = {
+    name,
+    type: newSubjectType.value,
+    color
+  }
+  availableSubjects.value.push(newSubject)
+  selectedSubjects.value.push(name)
+  
+  // Clear input
+  newSubjectName.value = ''
+}
+
+function removeCustomSubject(subjectName: string) {
+  // Remove from available subjects
+  const index = availableSubjects.value.findIndex(s => s.name === subjectName)
+  if (index !== -1) {
+    availableSubjects.value.splice(index, 1)
+  }
+  // Remove from selected subjects
+  const selectedIndex = selectedSubjects.value.indexOf(subjectName)
+  if (selectedIndex !== -1) {
+    selectedSubjects.value.splice(selectedIndex, 1)
+  }
+}
+
 function addStudent() {
   students.value.push({ name: '', gradeLevel: '' })
 }
@@ -259,7 +311,7 @@ async function completeOnboarding() {
       <!-- Step 3: Subjects -->
       <div v-if="currentStep === 3" class="bg-white rounded-lg shadow p-6">
         <h2 class="text-xl font-semibold mb-4">Choose your subjects</h2>
-        <p class="text-gray-600 mb-6">Select the subjects you'll be teaching. You can add more later.</p>
+        <p class="text-gray-600 mb-6">Select the subjects you'll be teaching, or add your own custom subjects.</p>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <button
@@ -268,7 +320,7 @@ async function completeOnboarding() {
             type="button"
             @click="toggleSubject(subject.name)"
             :class="[
-              'px-4 py-3 rounded-lg text-sm font-medium transition-all',
+              'px-4 py-3 rounded-lg text-sm font-medium transition-all relative group',
               selectedSubjects.includes(subject.name)
                 ? 'ring-2 ring-offset-2 shadow-md'
                 : 'hover:shadow-md border-2 border-transparent'
@@ -287,7 +339,42 @@ async function completeOnboarding() {
               {{ subject.name }}
             </span>
             <span class="text-xs opacity-75 mt-1 block">{{ subject.type }}</span>
+            <!-- Remove button for custom subjects (not default ones) -->
+            <button
+              v-if="!['Math', 'Language Arts', 'Reading', 'Science', 'Social Studies', 'Art', 'Music', 'Physical Education', 'Health'].includes(subject.name)"
+              type="button"
+              @click.stop="removeCustomSubject(subject.name)"
+              class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            >
+              ✕
+            </button>
           </button>
+        </div>
+
+        <!-- Add Custom Subject -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Add Custom Subject</h3>
+          <div class="flex gap-3">
+            <input
+              v-model="newSubjectName"
+              type="text"
+              placeholder="Subject name (e.g., Spanish, Coding)"
+              class="input flex-1"
+              @keyup.enter="addCustomSubject"
+            />
+            <select v-model="newSubjectType" class="input w-32">
+              <option value="core">Core</option>
+              <option value="elective">Elective</option>
+            </select>
+            <button
+              type="button"
+              @click="addCustomSubject"
+              :disabled="!newSubjectName.trim()"
+              class="btn-primary px-4"
+            >
+              Add
+            </button>
+          </div>
         </div>
 
         <p class="mt-4 text-sm text-gray-500">
