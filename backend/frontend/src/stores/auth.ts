@@ -48,6 +48,12 @@ export const useAuthStore = defineStore('auth', () => {
     return selectedSchoolYear.value || currentSchoolYear.value
   })
 
+  // Check if viewing a past (archived) school year
+  const isViewingPastYear = computed(() => {
+    if (!selectedSchoolYear.value) return false
+    return selectedSchoolYear.value !== currentSchoolYear.value
+  })
+
   // Actions
   async function login(email: string, password: string) {
     loading.value = true
@@ -131,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentSchoolYear,
     availableSchoolYears,
     effectiveSchoolYear,
+    isViewingPastYear,
     // Actions
     login,
     register,

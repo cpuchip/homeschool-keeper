@@ -116,6 +116,25 @@ describe('Auth Store', () => {
     })
   })
 
+  describe('computed: isViewingPastYear', () => {
+    it('should return false when no selection', () => {
+      store.family = mockFamily
+      expect(store.isViewingPastYear).toBe(false)
+    })
+
+    it('should return false when viewing current year', () => {
+      store.family = mockFamily
+      store.setSelectedSchoolYear('2024-2025')
+      expect(store.isViewingPastYear).toBe(false)
+    })
+
+    it('should return true when viewing a past year', () => {
+      store.family = mockFamily
+      store.setSelectedSchoolYear('2023-2024')
+      expect(store.isViewingPastYear).toBe(true)
+    })
+  })
+
   describe('login', () => {
     it('should set user and family on success', async () => {
       vi.mocked(authApi.login).mockResolvedValue({

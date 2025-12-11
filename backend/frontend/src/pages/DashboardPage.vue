@@ -64,6 +64,15 @@ const todayHours = computed(() => {
       </div>
     </div>
 
+    <!-- Past year indicator -->
+    <div v-if="authStore.isViewingPastYear" class="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center gap-3">
+      <span class="text-xl">📁</span>
+      <div>
+        <p class="font-medium">Viewing archived year: {{ authStore.effectiveSchoolYear }}</p>
+        <p class="text-sm">You can still add logs to this year, but consider switching to the current year.</p>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>

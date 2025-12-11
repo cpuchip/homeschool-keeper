@@ -119,6 +119,15 @@ onMounted(async () => {
   <div class="max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Quick Log</h1>
 
+    <!-- Past year warning -->
+    <div v-if="authStore.isViewingPastYear" class="mb-4 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center gap-3">
+      <span class="text-xl">📁</span>
+      <div>
+        <p class="font-medium">Viewing archived year: {{ authStore.effectiveSchoolYear }}</p>
+        <p class="text-sm">New entries will still be added to this year. Switch to the current year for regular logging.</p>
+      </div>
+    </div>
+
     <!-- Success/Error messages -->
     <div v-if="success" class="mb-4 p-3 bg-green-100 border border-green-200 text-green-700 rounded-lg">
       {{ success }}
