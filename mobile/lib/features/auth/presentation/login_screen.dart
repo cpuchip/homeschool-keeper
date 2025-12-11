@@ -37,14 +37,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
 
       if (mounted) {
-        // Trigger background sync after successful login
-        // Don't await - let it run in background
-        ref.read(syncProvider.notifier).performFullSync();
-        
         // Check if user needs onboarding
         final authState = ref.read(authStateProvider);
         if (authState.onboardingComplete) {
-          context.go('/dashboard');
+          // Perform full sync (non-incremental) after login
+          // This ensures all server data is pulled before showing dashboard
+          await ref.read(syncProvider.notifier).performFullSync(incremental: false);
+          if (mounted) context.go('/dashboard');
         } else {
           context.go('/onboarding');
         }

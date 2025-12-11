@@ -84,14 +84,15 @@ class SyncNotifier extends StateNotifier<SyncState> {
   }
 
   /// Perform a full sync (push and pull)
-  Future<SyncResult> performFullSync() async {
+  /// Set [incremental] to false to do a full sync ignoring last sync time
+  Future<SyncResult> performFullSync({bool incremental = true}) async {
     if (state.isSyncing) {
       return SyncResult.error('Sync already in progress');
     }
 
     state = state.copyWith(status: SyncStatus.syncing, error: null);
 
-    final result = await _syncService.performFullSync();
+    final result = await _syncService.performFullSync(incremental: incremental);
 
     if (result.success) {
       state = state.copyWith(

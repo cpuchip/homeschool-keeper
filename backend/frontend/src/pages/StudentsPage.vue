@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useStudentsStore } from '@/stores/students'
 import { BaseModal, BaseInput, BaseSelect, BaseButton } from '@/components/common'
+import { toast } from '@/composables/useToast'
 import type { Student } from '@/types'
 
 const studentsStore = useStudentsStore()
@@ -103,18 +104,20 @@ async function handleDelete(student: Student) {
 
   try {
     await studentsStore.deleteStudent(student.id)
+    toast.success(`${student.name} has been removed`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    alert(err.response?.data?.error || 'Failed to delete student')
+    toast.error(err.response?.data?.error || 'Failed to delete student')
   }
 }
 
 async function handleReactivate(student: Student) {
   try {
     await studentsStore.updateStudent(student.id, { active: true })
+    toast.success(`${student.name} has been reactivated`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    alert(err.response?.data?.error || 'Failed to reactivate student')
+    toast.error(err.response?.data?.error || 'Failed to reactivate student')
   }
 }
 </script>

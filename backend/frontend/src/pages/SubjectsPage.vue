@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useSubjectsStore } from '@/stores/subjects'
 import { BaseModal, BaseInput, BaseSelect, BaseButton } from '@/components/common'
+import { toast } from '@/composables/useToast'
 import type { Subject } from '@/types'
 
 const subjectsStore = useSubjectsStore()
@@ -102,9 +103,10 @@ async function handleDelete(subject: Subject) {
 
   try {
     await subjectsStore.deleteSubject(subject.id)
+    toast.success(`${subject.name} has been removed`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    alert(err.response?.data?.error || 'Failed to delete subject')
+    toast.error(err.response?.data?.error || 'Failed to delete subject')
   }
 }
 </script>

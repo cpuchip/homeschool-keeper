@@ -5,6 +5,7 @@ import { useStudentsStore } from '@/stores/students'
 import { useSubjectsStore } from '@/stores/subjects'
 import { useAuthStore } from '@/stores/auth'
 import { LogEntryRow, BaseModal, SchoolYearSelector } from '@/components/common'
+import { toast } from '@/composables/useToast'
 import type { LogEntry } from '@/types'
 
 const logsStore = useLogsStore()
@@ -115,8 +116,9 @@ async function saveEdit() {
     })
     showEditModal.value = false
     editingLog.value = null
+    toast.success('Log entry updated')
   } catch (err) {
-    console.error('Failed to update log:', err)
+    toast.error('Failed to update log entry')
   } finally {
     saving.value = false
   }
@@ -135,8 +137,9 @@ async function confirmDelete() {
     await logsStore.deleteLog(deletingLog.value.id)
     showDeleteModal.value = false
     deletingLog.value = null
+    toast.success('Log entry deleted')
   } catch (err) {
-    console.error('Failed to delete log:', err)
+    toast.error('Failed to delete log entry')
   } finally {
     saving.value = false
   }
