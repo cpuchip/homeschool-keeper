@@ -440,10 +440,9 @@ class _DataSyncCard extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.download_outlined),
             title: const Text('Export Data'),
+            subtitle: const Text('PDF reports, CSV, backups'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to export screen
-            },
+            onTap: () => context.push('/export'),
           ),
           const Divider(height: 1),
           ListTile(
