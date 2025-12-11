@@ -92,26 +92,26 @@
 
 ---
 
-## Priority 2: Complete Phase 1B (Next 2 Weeks)
+## Priority 2: Complete Phase 1B (Next 2 Weeks) - SIGNIFICANT PROGRESS
 
 ### 2.1 Mobile Cloud Sync Polish
-- [ ] **Full sync on login** - Pull all server data after auth
+- [x] ~~Full sync on login~~ - Login now awaits full sync before navigating ✅ Done Dec 10
 - [x] ~~Sync indicator in UI~~ - Show syncing status, last sync time ✅ Done Dec 10
-- [ ] **Conflict resolution UI** - When server and local differ
-- [ ] **Logout clears local data** - Or asks if user wants to keep
+- [x] ~~Conflict resolution UI~~ - Orange snackbar shows conflict count (server-wins) ✅ Done Dec 10
+- [x] ~~Logout clears local data~~ - Dialog asks Keep Data/Clear Data ✅ Done Dec 10
 
 ### 2.2 Mobile UX Improvements
 - [ ] **Student avatars** - Use gradeLevel-based colors already in place
 - [ ] **Subject color picker** - Allow custom colors
 - [x] ~~Log entry editing~~ ✅ Done Dec 10 - Edit dialog added in logs_screen.dart
-- [ ] **Delete confirmations** - For students, subjects, logs
-- [ ] **Pull-to-refresh** on all list screens
+- [x] ~~Delete confirmations~~ - Already implemented with AlertDialog ✅ Verified Dec 10
+- [x] ~~Pull-to-refresh~~ - Already implemented on all list screens ✅ Verified Dec 10
 
 ### 2.3 Web UX Improvements
 - [x] **Location management** - CRUD for saved locations (field trips, co-ops) ✅ Done Dec 10
 - [x] **Multi-year switching** - View/filter by school year ✅ Done Dec 10
-- [ ] **Archive school year** - Mark year as read-only
-- [ ] **Better error handling** - Toast notifications instead of console logs
+- [x] ~~Archive school year~~ - Warning banner when viewing past year ✅ Done Dec 10
+- [x] ~~Better error handling~~ - Toast notifications for CRUD operations ✅ Done Dec 10
 
 ---
 
