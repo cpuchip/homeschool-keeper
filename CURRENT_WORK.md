@@ -138,6 +138,15 @@
 - [ ] **Email notifications** - Weekly summaries
 
 ### 3.4 Multi-State Support
+- [ ] **📚 State Law Research** - Deep research across all 50 states for current homeschool laws:
+  - Notification requirements (who to notify, when, how)
+  - Record keeping requirements (attendance, subjects, hours)
+  - Minimum instruction hours per year
+  - Core vs elective subject requirements
+  - Assessment/evaluation requirements (testing, portfolios)
+  - Teacher qualification requirements
+  - Age/grade requirements
+  - Sources: Official state education department links
 - [ ] **State law presets** - Different requirements per state
 - [ ] **Hour tracking by state** - Missouri = 1000 total, 600 core, etc.
 

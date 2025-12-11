@@ -2,9 +2,14 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, scaffolding ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+
+# Prevent duplicate runs: cancel in-progress runs on same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
