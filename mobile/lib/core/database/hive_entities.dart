@@ -280,6 +280,10 @@ class LogEntryEntity extends HiveObject {
   @HiveField(18)
   DateTime? lastSyncedAt;
 
+  /// Group ID for multi-student log entries (created together)
+  @HiveField(19)
+  String? groupId;
+
   LogEntryEntity();
 
   factory LogEntryEntity.create({
@@ -292,6 +296,7 @@ class LogEntryEntity extends HiveObject {
     String? locationId,
     String? locationName,
     String? schoolYear,
+    String? groupId,
   }) {
     final now = DateTime.now();
     // Calculate school year: if before July, it's previous year
@@ -303,6 +308,7 @@ class LogEntryEntity extends HiveObject {
       ..familyId = 'local'
       ..studentId = studentId
       ..subjectId = subjectId
+      ..groupId = groupId
       ..date = date
       ..hours = hours
       ..description = description
@@ -324,6 +330,7 @@ class LogEntryEntity extends HiveObject {
         'organizationId': organizationId,
         'studentId': studentId,
         'subjectId': subjectId,
+        'groupId': groupId,
         'date': date.toIso8601String(),
         'hours': hours,
         'description': description,
@@ -344,6 +351,7 @@ class LogEntryEntity extends HiveObject {
       ..organizationId = json['organizationId'] as String?
       ..studentId = json['studentId'] as String
       ..subjectId = json['subjectId'] as String
+      ..groupId = json['groupId'] as String?
       ..date = DateTime.parse(json['date'] as String)
       ..hours = (json['hours'] as num).toDouble()
       ..description = json['description'] as String

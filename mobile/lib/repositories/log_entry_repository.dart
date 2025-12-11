@@ -114,6 +114,7 @@ class LogEntryRepository {
     String locationType = 'home',
     String? locationId,
     String? locationName,
+    String? groupId,
   }) async {
     // Validate hours increment
     final increment = _db.familySettings.hourIncrement;
@@ -128,6 +129,7 @@ class LogEntryRepository {
       locationType: locationType,
       locationId: locationId,
       locationName: locationName,
+      groupId: groupId,
     );
 
     await _db.logEntriesBox.put(entity.id, entity);
@@ -242,6 +244,7 @@ class LogEntryRepository {
       organizationId: entity.organizationId,
       studentId: entity.studentId,
       subjectId: entity.subjectId,
+      groupId: entity.groupId,
       date: entity.date,
       hours: entity.hours,
       description: entity.description,

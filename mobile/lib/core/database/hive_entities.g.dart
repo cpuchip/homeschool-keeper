@@ -173,13 +173,14 @@ class LogEntryEntityAdapter extends TypeAdapter<LogEntryEntity> {
       ..updatedAt = fields[15] as DateTime
       ..remoteId = fields[16] as String?
       ..needsSync = fields[17] as bool
-      ..lastSyncedAt = fields[18] as DateTime?;
+      ..lastSyncedAt = fields[18] as DateTime?
+      ..groupId = fields[19] as String?;
   }
 
   @override
   void write(BinaryWriter writer, LogEntryEntity obj) {
     writer
-      ..writeByte(19)
+      ..writeByte(20)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -217,7 +218,9 @@ class LogEntryEntityAdapter extends TypeAdapter<LogEntryEntity> {
       ..writeByte(17)
       ..write(obj.needsSync)
       ..writeByte(18)
-      ..write(obj.lastSyncedAt);
+      ..write(obj.lastSyncedAt)
+      ..writeByte(19)
+      ..write(obj.groupId);
   }
 
   @override
@@ -251,7 +254,7 @@ class FamilySettingsEntityAdapter extends TypeAdapter<FamilySettingsEntity> {
       ..updatedAt = fields[6] as DateTime
       ..remoteId = fields[7] as String?
       ..needsSync = fields[8] as bool
-      ..autoBackupEnabled = fields[9] as bool? ?? true; // Default to enabled for existing data
+      ..autoBackupEnabled = fields[9] as bool;
   }
 
   @override

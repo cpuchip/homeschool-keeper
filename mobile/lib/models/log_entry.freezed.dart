@@ -25,6 +25,8 @@ mixin _$LogEntry {
   String? get organizationId => throw _privateConstructorUsedError;
   String get studentId => throw _privateConstructorUsedError;
   String get subjectId => throw _privateConstructorUsedError;
+  String? get groupId =>
+      throw _privateConstructorUsedError; // Links multiple log entries created together (multi-student)
   DateTime get date => throw _privateConstructorUsedError;
   double get hours => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
@@ -54,6 +56,7 @@ abstract class $LogEntryCopyWith<$Res> {
       String? organizationId,
       String studentId,
       String subjectId,
+      String? groupId,
       DateTime date,
       double hours,
       String description,
@@ -85,6 +88,7 @@ class _$LogEntryCopyWithImpl<$Res, $Val extends LogEntry>
     Object? organizationId = freezed,
     Object? studentId = null,
     Object? subjectId = null,
+    Object? groupId = freezed,
     Object? date = null,
     Object? hours = null,
     Object? description = null,
@@ -118,6 +122,10 @@ class _$LogEntryCopyWithImpl<$Res, $Val extends LogEntry>
           ? _value.subjectId
           : subjectId // ignore: cast_nullable_to_non_nullable
               as String,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
       date: null == date
           ? _value.date
           : date // ignore: cast_nullable_to_non_nullable
@@ -180,6 +188,7 @@ abstract class _$$LogEntryImplCopyWith<$Res>
       String? organizationId,
       String studentId,
       String subjectId,
+      String? groupId,
       DateTime date,
       double hours,
       String description,
@@ -209,6 +218,7 @@ class __$$LogEntryImplCopyWithImpl<$Res>
     Object? organizationId = freezed,
     Object? studentId = null,
     Object? subjectId = null,
+    Object? groupId = freezed,
     Object? date = null,
     Object? hours = null,
     Object? description = null,
@@ -242,6 +252,10 @@ class __$$LogEntryImplCopyWithImpl<$Res>
           ? _value.subjectId
           : subjectId // ignore: cast_nullable_to_non_nullable
               as String,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
       date: null == date
           ? _value.date
           : date // ignore: cast_nullable_to_non_nullable
@@ -299,6 +313,7 @@ class _$LogEntryImpl implements _LogEntry {
       this.organizationId,
       required this.studentId,
       required this.subjectId,
+      this.groupId,
       required this.date,
       required this.hours,
       required this.description,
@@ -325,6 +340,9 @@ class _$LogEntryImpl implements _LogEntry {
   @override
   final String subjectId;
   @override
+  final String? groupId;
+// Links multiple log entries created together (multi-student)
+  @override
   final DateTime date;
   @override
   final double hours;
@@ -349,7 +367,7 @@ class _$LogEntryImpl implements _LogEntry {
 
   @override
   String toString() {
-    return 'LogEntry(id: $id, familyId: $familyId, organizationId: $organizationId, studentId: $studentId, subjectId: $subjectId, date: $date, hours: $hours, description: $description, locationType: $locationType, locationId: $locationId, locationName: $locationName, submittedBy: $submittedBy, status: $status, schoolYear: $schoolYear, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'LogEntry(id: $id, familyId: $familyId, organizationId: $organizationId, studentId: $studentId, subjectId: $subjectId, groupId: $groupId, date: $date, hours: $hours, description: $description, locationType: $locationType, locationId: $locationId, locationName: $locationName, submittedBy: $submittedBy, status: $status, schoolYear: $schoolYear, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -366,6 +384,7 @@ class _$LogEntryImpl implements _LogEntry {
                 other.studentId == studentId) &&
             (identical(other.subjectId, subjectId) ||
                 other.subjectId == subjectId) &&
+            (identical(other.groupId, groupId) || other.groupId == groupId) &&
             (identical(other.date, date) || other.date == date) &&
             (identical(other.hours, hours) || other.hours == hours) &&
             (identical(other.description, description) ||
@@ -396,6 +415,7 @@ class _$LogEntryImpl implements _LogEntry {
       organizationId,
       studentId,
       subjectId,
+      groupId,
       date,
       hours,
       description,
@@ -429,6 +449,7 @@ abstract class _LogEntry implements LogEntry {
       final String? organizationId,
       required final String studentId,
       required final String subjectId,
+      final String? groupId,
       required final DateTime date,
       required final double hours,
       required final String description,
@@ -455,6 +476,8 @@ abstract class _LogEntry implements LogEntry {
   @override
   String get subjectId;
   @override
+  String? get groupId;
+  @override // Links multiple log entries created together (multi-student)
   DateTime get date;
   @override
   double get hours;

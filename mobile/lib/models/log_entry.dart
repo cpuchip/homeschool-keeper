@@ -12,6 +12,7 @@ class LogEntry with _$LogEntry {
     String? organizationId,
     required String studentId,
     required String subjectId,
+    String? groupId, // Links multiple log entries created together (multi-student)
     required DateTime date,
     required double hours,
     required String description,

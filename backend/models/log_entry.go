@@ -13,6 +13,7 @@ type LogEntry struct {
 	OrganizationID *primitive.ObjectID `bson:"organizationId,omitempty" json:"organizationId,omitempty"` // for co-op activities
 	StudentID      primitive.ObjectID  `bson:"studentId" json:"studentId"`
 	SubjectID      primitive.ObjectID  `bson:"subjectId" json:"subjectId"`
+	GroupID        *string             `bson:"groupId,omitempty" json:"groupId,omitempty"` // links multiple log entries created together (multi-student)
 	Date           time.Time           `bson:"date" json:"date"`
 	Hours          float64             `bson:"hours" json:"hours"`
 	Description    string              `bson:"description" json:"description"`

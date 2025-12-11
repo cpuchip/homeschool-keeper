@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../repositories/log_entry_repository.dart';
 import '../models/log_entry.dart';
 import '../core/sync/auto_sync_service.dart';
@@ -112,6 +113,7 @@ class LogsNotifier extends StateNotifier<LogsState> {
     String? description,
     String locationType = 'home',
     String? locationName,
+    String? groupId,
   }) async {
     try {
       final log = await _repository.create(
@@ -122,6 +124,7 @@ class LogsNotifier extends StateNotifier<LogsState> {
         description: description ?? '',
         locationType: locationType,
         locationName: locationName,
+        groupId: groupId,
       );
       state = state.copyWith(
         logs: [log, ...state.logs], // Add to front (newest first)
@@ -131,6 +134,67 @@ class LogsNotifier extends StateNotifier<LogsState> {
       _notifyAutoSync();
       
       return log;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return null;
+    }
+  }
+
+  /// Create log entries for multiple students (same activity)
+  /// Returns the list of created logs, or null if failed
+  Future<List<LogEntry>?> createMultiStudentLog({
+    required List<String> studentIds,
+    required String subjectId,
+    required DateTime date,
+    required double hours,
+    String? description,
+    String locationType = 'home',
+    String? locationName,
+  }) async {
+    if (studentIds.isEmpty) return null;
+    
+    // Single student - no group needed
+    if (studentIds.length == 1) {
+      final log = await createLog(
+        studentId: studentIds.first,
+        subjectId: subjectId,
+        date: date,
+        hours: hours,
+        description: description,
+        locationType: locationType,
+        locationName: locationName,
+      );
+      return log != null ? [log] : null;
+    }
+    
+    try {
+      // Generate a unique groupId for this multi-student log
+      final groupId = const Uuid().v4();
+      final createdLogs = <LogEntry>[];
+      
+      for (final studentId in studentIds) {
+        final log = await _repository.create(
+          studentId: studentId,
+          subjectId: subjectId,
+          date: date,
+          hours: hours,
+          description: description ?? '',
+          locationType: locationType,
+          locationName: locationName,
+          groupId: groupId,
+        );
+        createdLogs.add(log);
+      }
+      
+      // Update state with all new logs
+      state = state.copyWith(
+        logs: [...createdLogs, ...state.logs],
+      );
+      
+      // Trigger auto-sync
+      _notifyAutoSync();
+      
+      return createdLogs;
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return null;

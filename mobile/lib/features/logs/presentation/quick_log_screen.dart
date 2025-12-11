@@ -11,7 +11,7 @@ class QuickLogScreen extends ConsumerStatefulWidget {
 }
 
 class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
-  String? _selectedStudentId;
+  final Set<String> _selectedStudentIds = {};
   String? _selectedSubjectId;
   double _hours = 1.0;
   bool _isAtHome = true;
@@ -40,9 +40,9 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    if (_selectedStudentId == null || _selectedSubjectId == null) {
+    if (_selectedStudentIds.isEmpty || _selectedSubjectId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a student and subject')),
+        const SnackBar(content: Text('Please select at least one student and a subject')),
       );
       return;
     }
@@ -50,8 +50,8 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final result = await ref.read(logsProvider.notifier).createLog(
-        studentId: _selectedStudentId!,
+      final result = await ref.read(logsProvider.notifier).createMultiStudentLog(
+        studentIds: _selectedStudentIds.toList(),
         subjectId: _selectedSubjectId!,
         date: DateTime.now(),
         hours: _hours,
@@ -62,10 +62,15 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
       );
 
       if (mounted) {
-        if (result != null) {
+        if (result != null && result.isNotEmpty) {
+          final studentCount = result.length;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Log entry created!'),
+            SnackBar(
+              content: Text(
+                studentCount == 1
+                    ? 'Log entry created!'
+                    : 'Created $studentCount log entries!',
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -113,16 +118,39 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Student selector
+            // Student selector (multi-select with chips)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Student',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      children: [
+                        Text(
+                          'Students',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const Spacer(),
+                        if (students.length > 1)
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                if (_selectedStudentIds.length == students.length) {
+                                  _selectedStudentIds.clear();
+                                } else {
+                                  _selectedStudentIds.clear();
+                                  _selectedStudentIds.addAll(students.map((s) => s.id));
+                                }
+                              });
+                            },
+                            child: Text(
+                              _selectedStudentIds.length == students.length
+                                  ? 'Clear All'
+                                  : 'Select All',
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     if (studentsState.isLoading)
@@ -133,20 +161,35 @@ class _QuickLogScreenState extends ConsumerState<QuickLogScreen> {
                         style: TextStyle(color: Colors.grey),
                       )
                     else
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedStudentId,
-                        decoration: const InputDecoration(
-                          hintText: 'Select a student',
-                        ),
-                        items: students.map((student) {
-                          return DropdownMenuItem(
-                            value: student.id,
-                            child: Text(student.name),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: students.map((student) {
+                          final isSelected = _selectedStudentIds.contains(student.id);
+                          return FilterChip(
+                            label: Text(student.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedStudentIds.add(student.id);
+                                } else {
+                                  _selectedStudentIds.remove(student.id);
+                                }
+                              });
+                            },
                           );
                         }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedStudentId = value);
-                        },
+                      ),
+                    if (_selectedStudentIds.length > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '${_selectedStudentIds.length} students selected - will create ${_selectedStudentIds.length} log entries',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
                       ),
                   ],
                 ),

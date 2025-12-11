@@ -282,6 +282,41 @@ ssh cpuchip@172.17.100.31
 3. Format code: Go fmt, Prettier, dart format
 4. Check for hardcoded secrets
 
+### Git Commit Best Practices
+
+**CRITICAL**: When making a git commit, ALWAYS update work logs in the SAME commit.
+
+```bash
+# ❌ WRONG - Work logs updated separately
+git commit -m "Implement student CRUD endpoints"
+# ... later ...
+git commit -m "Update work logs"
+
+# ✅ CORRECT - Work and logs together
+# 1. Complete the work
+# 2. Update HMS_LOGS_IMP.md or CURRENT_WORK.md
+# 3. Stage ALL changes together
+git add backend/handlers/students.go HMS_LOGS_IMP.md
+git commit -m "Implement student CRUD endpoints
+
+- Added GET, POST, PUT, DELETE handlers
+- Repository functions with family filtering
+- Unit tests with 75% coverage
+- Updated HMS_LOGS_IMP.md Task 3.2 as complete"
+```
+
+**Why This Matters**:
+- Keeps work history in sync with code changes
+- Makes PR reviews easier (reviewers see what was completed)
+- Prevents "stale" task lists
+- Maintains accurate project timeline
+
+**What to Update**:
+- `HMS_LOGS_IMP.md` - Mark tasks as complete with ✅
+- `CURRENT_WORK.md` - Update current priorities/status
+- Add completion dates if not present
+- Update any blockers or notes
+
 ### CI/CD
 - Push to `scaffolding` branch triggers build
 - Tests must pass before merge
