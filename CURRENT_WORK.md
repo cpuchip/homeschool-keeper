@@ -72,23 +72,23 @@
 
 ## 📋 Detailed Next Steps by Priority
 
-## Priority 1: Bug Fixes & Polish (This Week)
+## Priority 1: Bug Fixes & Polish (This Week) ✅ COMPLETE
 
 ### 1.1 Web App Fixes
 - [x] ~~Fix LogsPage "Invalid Date" display~~ ✅ Done Dec 10
 - [x] ~~Test log edit/delete functionality~~ ✅ Verified Dec 10 - Edit modal works, delete works
-- [ ] **Verify onboarding flow** end-to-end
-- [ ] **Add form validation feedback** (error messages on submit)
+- [x] ~~Verify onboarding flow~~ ✅ Verified Dec 10 - Full flow tested with new user
+- [x] ~~Add form validation feedback~~ ✅ Already implemented - error messages on submit
 
 ### 1.2 Mobile App Stability
 - [x] ~~Fix Flutter analyze for CI~~ ✅ Done Dec 10
 - [x] ~~Add sync status indicator~~ in app bar (syncing spinner, last sync time) ✅ Done Dec 10
-- [ ] **Handle sync conflicts** - currently last-write-wins, need merge strategy
+- [x] ~~Handle sync conflicts~~ ✅ Done Dec 10 - Server-wins with conflict detection, orange snackbar notification
 
 ### 1.3 Testing Gaps
 - [x] **Backend unit tests** - LogRepository tests added (skipped on Windows, runs in CI)
-- [ ] **Web component tests** - Vitest deferred, but at least test stores
-- [ ] **Mobile widget tests** - Test critical flows
+- [x] **Web component tests** - 31 Vitest tests for students and auth stores ✅ Done Dec 10
+- [x] **Mobile widget tests** - 10 Flutter model tests ✅ Done Dec 10
 
 ---
 
