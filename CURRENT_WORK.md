@@ -108,7 +108,7 @@
 - [ ] **Pull-to-refresh** on all list screens
 
 ### 2.3 Web UX Improvements
-- [ ] **Location management** - CRUD for saved locations (field trips, co-ops)
+- [x] **Location management** - CRUD for saved locations (field trips, co-ops) ✅ Done Dec 10
 - [ ] **Multi-year switching** - View/filter by school year
 - [ ] **Archive school year** - Mark year as read-only
 - [ ] **Better error handling** - Toast notifications instead of console logs
@@ -152,7 +152,7 @@
 
 ### Next Week
 1. **Conflict resolution** - Handle sync conflicts gracefully
-2. **Location management** - Web CRUD for saved locations
+2. ~~**Location management**~~ - Web CRUD for saved locations ✅ Done Dec 10
 3. **Multi-year support** - Switch between school years
 4. **Pull-to-refresh** on mobile list screens
 
@@ -221,6 +221,15 @@ Backend (Go)
 - Migrated all debugPrint calls to logger
 - **Added sync status indicator** to Dashboard app bar (SyncButton widget)
 - Created SyncStatusIndicator and SyncButton widgets for reusable sync UI
+- **Implemented Recent Logs card** on mobile dashboard (shows 5 most recent)
+- **Added mobile log editing** - Edit dialog in logs_screen.dart
+- **Implemented Location Management** feature for web:
+  - Backend: LocationRepository with full CRUD (create, read, update, soft-delete)
+  - Backend: LocationHandler with REST endpoints (/api/v1/locations)
+  - Frontend: locationsApi client and locationsStore (Pinia)
+  - Frontend: Saved Locations section in Settings page
+  - UI: Add/Edit/Delete locations with type (field_trip, co_op, other)
+- Updated 14-api-contracts.md with mobile auth and sync params
 
 ### December 9, 2025
 - Implemented auto-sync on log creation

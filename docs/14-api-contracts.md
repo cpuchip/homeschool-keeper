@@ -425,6 +425,79 @@ Query params:
 
 ---
 
+### Locations
+
+Saved locations for quick selection during log entry (field trips, co-ops, etc.)
+
+#### GET /locations
+Query params:
+- `since` (optional, ISO timestamp) - For incremental sync, returns only records updated after this time
+
+```json
+// Response 200
+{
+  "locations": [
+    {
+      "id": "loc123",
+      "familyId": "fam456",
+      "type": "field_trip",  // field_trip, co_op, other
+      "name": "Science City Museum",
+      "address": "4601 State Ave, Kansas City, KS 66102",
+      "active": true,
+      "createdAt": "2025-12-10T18:30:00Z",
+      "updatedAt": "2025-12-10T18:30:00Z"
+    }
+  ]
+}
+```
+
+#### POST /locations
+```json
+// Request
+{
+  "type": "field_trip",
+  "name": "Science City Museum",
+  "address": "4601 State Ave, Kansas City, KS 66102"
+}
+
+// Response 201
+{
+  "id": "loc123",
+  "familyId": "fam456",
+  "type": "field_trip",
+  "name": "Science City Museum",
+  "address": "4601 State Ave, Kansas City, KS 66102",
+  "active": true,
+  "createdAt": "2025-12-10T18:30:00Z",
+  "updatedAt": "2025-12-10T18:30:00Z"
+}
+```
+
+#### GET /locations/:id
+```json
+// Response 200 - single location
+```
+
+#### PATCH /locations/:id
+```json
+// Request - any combination of:
+{
+  "type": "co_op",
+  "name": "New Name",
+  "address": "New Address"
+}
+
+// Response 200 - updated location
+```
+
+#### DELETE /locations/:id
+```json
+// Response 204 No Content
+// Note: Soft delete (sets active=false)
+```
+
+---
+
 ## Error Responses
 
 All errors follow this format:

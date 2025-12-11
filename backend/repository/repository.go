@@ -22,23 +22,25 @@ const (
 
 // Repository provides access to all data repositories
 type Repository struct {
-	db       *mongo.Database
-	Users    *UserRepository
-	Families *FamilyRepository
-	Students *StudentRepository
-	Subjects *SubjectRepository
-	Logs     *LogRepository
+	db        *mongo.Database
+	Users     *UserRepository
+	Families  *FamilyRepository
+	Students  *StudentRepository
+	Subjects  *SubjectRepository
+	Logs      *LogRepository
+	Locations *LocationRepository
 }
 
 // New creates a new Repository with all sub-repositories
 func New(db *mongo.Database) *Repository {
 	return &Repository{
-		db:       db,
-		Users:    NewUserRepository(db),
-		Families: NewFamilyRepository(db),
-		Students: NewStudentRepository(db),
-		Subjects: NewSubjectRepository(db),
-		Logs:     NewLogRepository(db),
+		db:        db,
+		Users:     NewUserRepository(db),
+		Families:  NewFamilyRepository(db),
+		Students:  NewStudentRepository(db),
+		Subjects:  NewSubjectRepository(db),
+		Logs:      NewLogRepository(db),
+		Locations: NewLocationRepository(db),
 	}
 }
 
@@ -62,6 +64,9 @@ func (r *Repository) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 	if err := r.Logs.EnsureIndexes(ctx); err != nil {
+		return err
+	}
+	if err := r.Locations.EnsureIndexes(ctx); err != nil {
 		return err
 	}
 	return nil

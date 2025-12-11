@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useLocationsStore } from '@/stores/locations'
 import { BaseModal } from '@/components/common'
+import type { Location } from '@/types'
 
 const authStore = useAuthStore()
+const locationsStore = useLocationsStore()
 
 // Family settings
 const hourIncrement = ref(0.25)
@@ -20,6 +23,17 @@ const showPasswordModal = ref(false)
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
+
+// Locations
+const showLocationModal = ref(false)
+const editingLocation = ref<Location | null>(null)
+const locationName = ref('')
+const locationType = ref('field_trip')
+const locationAddress = ref('')
+const savingLocation = ref(false)
+const locationError = ref('')
+
+const locations = computed(() => locationsStore.locations)
 
 // UI state
 const saving = ref(false)
@@ -116,6 +130,74 @@ function formatDateForInput(isoDate: string): string {
   return isoDate.split('T')[0]
 }
 
+// Location type display names
+const locationTypeLabels: Record<string, string> = {
+  field_trip: 'Field Trip',
+  co_op: 'Co-op',
+  other: 'Other',
+}
+
+function openAddLocation() {
+  editingLocation.value = null
+  locationName.value = ''
+  locationType.value = 'field_trip'
+  locationAddress.value = ''
+  locationError.value = ''
+  showLocationModal.value = true
+}
+
+function openEditLocation(location: Location) {
+  editingLocation.value = location
+  locationName.value = location.name
+  locationType.value = location.type
+  locationAddress.value = location.address || ''
+  locationError.value = ''
+  showLocationModal.value = true
+}
+
+async function saveLocation() {
+  if (!locationName.value.trim()) {
+    locationError.value = 'Name is required'
+    return
+  }
+
+  savingLocation.value = true
+  locationError.value = ''
+
+  try {
+    if (editingLocation.value) {
+      // Update existing
+      await locationsStore.updateLocation(editingLocation.value.id, {
+        name: locationName.value.trim(),
+        type: locationType.value,
+        address: locationAddress.value.trim() || undefined,
+      })
+    } else {
+      // Create new
+      await locationsStore.createLocation({
+        name: locationName.value.trim(),
+        type: locationType.value,
+        address: locationAddress.value.trim() || undefined,
+      })
+    }
+    showLocationModal.value = false
+  } catch (e: unknown) {
+    locationError.value = e instanceof Error ? e.message : 'Failed to save location'
+  } finally {
+    savingLocation.value = false
+  }
+}
+
+async function deleteLocation(location: Location) {
+  if (!confirm(`Delete location "${location.name}"?`)) return
+  
+  try {
+    await locationsStore.deleteLocation(location.id)
+  } catch (e) {
+    errorMessage.value = 'Failed to delete location'
+  }
+}
+
 onMounted(() => {
   // Load current settings
   if (user.value) {
@@ -129,6 +211,9 @@ onMounted(() => {
     schoolYearEnd.value = formatDateForInput(family.value.schoolYearEnd)
     timezone.value = family.value.timezone ?? 'America/Chicago'
   }
+
+  // Load saved locations
+  locationsStore.fetchLocations()
 })
 </script>
 
@@ -242,6 +327,66 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Saved Locations -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-medium text-gray-900">Saved Locations</h2>
+        <button 
+          type="button"
+          class="btn-secondary text-sm"
+          @click="openAddLocation"
+        >
+          + Add Location
+        </button>
+      </div>
+      <p class="text-sm text-gray-600 mb-4">
+        Save frequently-used locations like field trip destinations, co-op meeting places, and more for quick selection when logging hours.
+      </p>
+      
+      <!-- Locations list -->
+      <div v-if="locations.length > 0" class="space-y-2">
+        <div 
+          v-for="location in locations" 
+          :key="location.id"
+          class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <div>
+            <div class="font-medium text-gray-900">{{ location.name }}</div>
+            <div class="text-sm text-gray-500">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                {{ locationTypeLabels[location.type] || location.type }}
+              </span>
+              <span v-if="location.address" class="ml-2">{{ location.address }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button 
+              type="button"
+              class="text-gray-500 hover:text-gray-700"
+              @click="openEditLocation(location)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button 
+              type="button"
+              class="text-red-500 hover:text-red-700"
+              @click="deleteLocation(location)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="text-center py-8 text-gray-500">
+        <p>No saved locations yet.</p>
+        <p class="text-sm mt-1">Add locations like "Science Museum" or "Co-op Meeting Room".</p>
+      </div>
+    </div>
+
     <!-- State Requirements Info -->
     <div class="card">
       <h2 class="text-lg font-medium text-gray-900 mb-4">State Requirements</h2>
@@ -317,6 +462,55 @@ onMounted(() => {
           @click="changePassword"
         >
           {{ savingPassword ? 'Changing...' : 'Change Password' }}
+        </button>
+      </template>
+    </BaseModal>
+
+    <!-- Location Modal -->
+    <BaseModal v-model:open="showLocationModal" :title="editingLocation ? 'Edit Location' : 'Add Location'">
+      <div class="space-y-4">
+        <div v-if="locationError" class="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-sm">
+          {{ locationError }}
+        </div>
+        
+        <div>
+          <label class="label">Location Name <span class="text-red-500">*</span></label>
+          <input 
+            v-model="locationName" 
+            type="text" 
+            class="mt-1 input"
+            placeholder="e.g., Science Museum, Library"
+          />
+        </div>
+        <div>
+          <label class="label">Location Type <span class="text-red-500">*</span></label>
+          <select v-model="locationType" class="mt-1 input">
+            <option value="field_trip">Field Trip</option>
+            <option value="co_op">Co-op</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Address (optional)</label>
+          <input 
+            v-model="locationAddress" 
+            type="text" 
+            class="mt-1 input"
+            placeholder="e.g., 123 Main St, City, State"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <button type="button" class="btn-secondary" @click="showLocationModal = false">
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary"
+          :disabled="savingLocation"
+          @click="saveLocation"
+        >
+          {{ savingLocation ? 'Saving...' : (editingLocation ? 'Update' : 'Add Location') }}
         </button>
       </template>
     </BaseModal>

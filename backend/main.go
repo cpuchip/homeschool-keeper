@@ -125,6 +125,7 @@ func main() {
 		logHandler := handlers.NewLogHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
 		statsHandler := handlers.NewStatsHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
 		onboardingHandler := handlers.NewOnboardingHandler(repo.Families, repo.Subjects, repo.Students)
+		locationHandler := handlers.NewLocationHandler(repo.Locations)
 
 		// Create a unified auth wrapper that works for both web (cookies) and mobile (JWT)
 		// If JWT is configured, use RequireEitherAuthFunc; otherwise fallback to session-only
@@ -168,6 +169,13 @@ func main() {
 		// Stats routes (authentication required - works with both cookie and JWT)
 		api.HandleFunc("/v1/stats/student/{id}", requireAuth(statsHandler.StudentStats)).Methods("GET")
 		api.HandleFunc("/v1/stats/family", requireAuth(statsHandler.FamilyStats)).Methods("GET")
+
+		// Location routes (authentication required - works with both cookie and JWT)
+		api.HandleFunc("/v1/locations", requireAuth(locationHandler.List)).Methods("GET")
+		api.HandleFunc("/v1/locations", requireAuth(locationHandler.Create)).Methods("POST")
+		api.HandleFunc("/v1/locations/{id}", requireAuth(locationHandler.Get)).Methods("GET")
+		api.HandleFunc("/v1/locations/{id}", requireAuth(locationHandler.Update)).Methods("PATCH")
+		api.HandleFunc("/v1/locations/{id}", requireAuth(locationHandler.Delete)).Methods("DELETE")
 
 		// Mobile auth routes (JWT-based, no cookies)
 		if jwtManager != nil {
