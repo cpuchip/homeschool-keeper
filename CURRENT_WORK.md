@@ -124,8 +124,10 @@
 - [ ] **Work samples** - Photo attachments to logs
 
 ### 3.2 Custom Subjects
-- [ ] **Custom subjects in onboarding** - Let users add their own subjects during setup
-- [ ] **Add/edit/remove subjects** - Full CRUD in Subjects page (already done, verify working)
+- [x] **Custom subjects in onboarding** - Let users add their own subjects during setup ✅ Done Dec 11
+  - Web: Added input field + type selector + remove button for custom subjects
+  - Mobile: Created OnboardingScreen with 3 steps (school year, subjects, students)
+- [x] **Add/edit/remove subjects** - Full CRUD in Subjects page ✅ Done (verified working)
 - [ ] **Soft delete protection** - Warn if deleting subject with attached logs, mark as deleted not hard-delete
 - [ ] **Trash/Recycle Bin view** - View deleted items (students, subjects, logs) across all screens
 - [ ] **Restore from trash** - Undelete soft-deleted items
@@ -239,8 +241,13 @@ Backend (Go)
   - Renamed AddSubjectSheet → SubjectSheet with optional subject param for edit mode
   - Wired up "Edit" menu action in popup menus
 - **Priority 2 Complete** - All mobile and web UX improvements done
+- **Fixed duplicate CI runs** - Removed `scaffolding` from push trigger, added concurrency group
+- **Custom subjects in onboarding** (Web + Mobile):
+  - Web: Added input field, type selector (core/elective), remove button for custom subjects
+  - Mobile: Created full OnboardingScreen with 3 steps (school year, subjects, students)
+  - Added /onboarding route to mobile router
 - Updated Priority 3 with new items:
-  - Custom subjects during onboarding
+  - State law research task
   - Soft delete protection for subjects with logs
   - Trash/Recycle Bin view for deleted items
   - Restore and permanent delete functionality
