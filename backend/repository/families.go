@@ -104,3 +104,56 @@ func (r *FamilyRepository) SetPremiumFeatures(ctx context.Context, id primitive.
 		"premium.storageLimitBytes": storageLimitBytes,
 	})
 }
+
+// GetAll returns all families (for admin use)
+func (r *FamilyRepository) GetAll(ctx context.Context) ([]models.Family, error) {
+	cursor, err := r.coll.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var families []models.Family
+	if err := cursor.All(ctx, &families); err != nil {
+		return nil, err
+	}
+	return families, nil
+}
+
+// Count returns the total number of families
+func (r *FamilyRepository) Count(ctx context.Context) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{})
+}
+
+// CountByOrg returns the number of families in an organization
+func (r *FamilyRepository) CountByOrg(ctx context.Context, orgID primitive.ObjectID) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{"organizationId": orgID})
+}
+
+// GetByOrg returns all families in an organization
+func (r *FamilyRepository) GetByOrg(ctx context.Context, orgID primitive.ObjectID) ([]models.Family, error) {
+	cursor, err := r.coll.Find(ctx, bson.M{"organizationId": orgID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var families []models.Family
+	if err := cursor.All(ctx, &families); err != nil {
+		return nil, err
+	}
+	return families, nil
+}
+
+// CountPremiumEnabled returns the count of families with sync and uploads enabled
+func (r *FamilyRepository) CountPremiumEnabled(ctx context.Context) (syncEnabled, uploadsEnabled int64, err error) {
+	syncEnabled, err = r.coll.CountDocuments(ctx, bson.M{"premium.syncEnabled": true})
+	if err != nil {
+		return 0, 0, err
+	}
+	uploadsEnabled, err = r.coll.CountDocuments(ctx, bson.M{"premium.uploadsEnabled": true})
+	if err != nil {
+		return 0, 0, err
+	}
+	return syncEnabled, uploadsEnabled, nil
+}

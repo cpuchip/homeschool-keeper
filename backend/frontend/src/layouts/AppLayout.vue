@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const isSuperAdmin = computed(() => authStore.user?.email === 'cpuchip@gmail.com')
 
 async function handleLogout() {
   await authStore.logout()
@@ -67,6 +70,17 @@ async function handleLogout() {
         >
           <span class="mr-3">⚙️</span>
           Settings
+        </router-link>
+        
+        <!-- Super Admin Link -->
+        <router-link
+          v-if="isSuperAdmin"
+          to="/admin"
+          class="flex items-center px-6 py-3 text-purple-700 hover:bg-purple-50 mt-4 border-t"
+          active-class="bg-purple-50 text-purple-600 border-r-4 border-purple-600"
+        >
+          <span class="mr-3">🔒</span>
+          Admin Portal
         </router-link>
       </nav>
 

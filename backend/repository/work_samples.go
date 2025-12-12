@@ -228,3 +228,36 @@ func (r *WorkSampleRepository) GetTotalSizeByFamily(ctx context.Context, familyI
 	}
 	return results[0].TotalSize, nil
 }
+
+// CountAll returns the total count of work samples (for admin)
+func (r *WorkSampleRepository) CountAll(ctx context.Context) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{})
+}
+
+// GetTotalStorageUsed returns the total storage used across all families (for admin)
+func (r *WorkSampleRepository) GetTotalStorageUsed(ctx context.Context) (int64, error) {
+	pipeline := []bson.M{
+		{"$group": bson.M{
+			"_id":       nil,
+			"totalSize": bson.M{"$sum": "$sizeBytes"},
+		}},
+	}
+
+	cursor, err := r.coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []struct {
+		TotalSize int64 `bson:"totalSize"`
+	}
+	if err := cursor.All(ctx, &results); err != nil {
+		return 0, err
+	}
+
+	if len(results) == 0 {
+		return 0, nil
+	}
+	return results[0].TotalSize, nil
+}

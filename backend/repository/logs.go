@@ -282,3 +282,68 @@ func (r *LogRepository) Count(ctx context.Context, familyID primitive.ObjectID, 
 
 	return r.coll.CountDocuments(ctx, query)
 }
+
+// CountAll returns the total number of log entries (for admin)
+func (r *LogRepository) CountAll(ctx context.Context) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{})
+}
+
+// CountByFamily returns the number of log entries for a family (simple count)
+func (r *LogRepository) CountByFamily(ctx context.Context, familyID primitive.ObjectID) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{"familyId": familyID})
+}
+
+// CountByStudent returns the number of log entries for a specific student
+func (r *LogRepository) CountByStudent(ctx context.Context, familyID, studentID primitive.ObjectID) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{
+		"familyId":  familyID,
+		"studentId": studentID,
+	})
+}
+
+// CountByOrg returns the number of log entries for families in an org
+func (r *LogRepository) CountByOrg(ctx context.Context, orgID primitive.ObjectID) (int64, error) {
+	pipeline := []bson.M{
+		{
+			"$lookup": bson.M{
+				"from":         "families",
+				"localField":   "familyId",
+				"foreignField": "_id",
+				"as":           "family",
+			},
+		},
+		{
+			"$match": bson.M{
+				"family.organizationId": orgID,
+			},
+		},
+		{
+			"$count": "count",
+		},
+	}
+
+	cursor, err := r.coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []bson.M
+	if err := cursor.All(ctx, &results); err != nil {
+		return 0, err
+	}
+
+	if len(results) == 0 {
+		return 0, nil
+	}
+
+	count, ok := results[0]["count"].(int32)
+	if ok {
+		return int64(count), nil
+	}
+	count64, ok := results[0]["count"].(int64)
+	if ok {
+		return count64, nil
+	}
+	return 0, nil
+}

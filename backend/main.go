@@ -229,6 +229,19 @@ func main() {
 			api.HandleFunc("/v1/mobile/auth/refresh", mobileAuthHandler.Refresh).Methods("POST")
 			api.HandleFunc("/v1/mobile/auth/me", requireJWT(mobileAuthHandler.Me)).Methods("GET")
 		}
+
+		// Super Admin routes (authentication required, super admin check in handlers)
+		orgsRepo := repository.NewOrganizationRepository(database)
+		adminHandler := handlers.NewAdminHandler(
+			repo.Users,
+			repo.Families,
+			orgsRepo,
+			repo.Students,
+			repo.Logs,
+			repo.WorkSamples,
+			r2Client,
+		)
+		handlers.RegisterAdminRoutes(r, adminHandler)
 	}
 
 	// Serve SPA frontend

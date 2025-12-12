@@ -181,3 +181,57 @@ func (r *StudentRepository) HardDelete(ctx context.Context, familyID, id primiti
 func (r *StudentRepository) Count(ctx context.Context, familyID primitive.ObjectID) (int64, error) {
 	return r.coll.CountDocuments(ctx, bson.M{"familyId": familyID, "active": true})
 }
+
+// CountAll returns the total number of active students (for admin)
+func (r *StudentRepository) CountAll(ctx context.Context) (int64, error) {
+	return r.coll.CountDocuments(ctx, bson.M{"active": true})
+}
+
+// CountByOrg returns the number of students in families belonging to an org
+func (r *StudentRepository) CountByOrg(ctx context.Context, orgID primitive.ObjectID) (int64, error) {
+	// This requires an aggregation to count students in families that belong to the org
+	pipeline := []bson.M{
+		{
+			"$lookup": bson.M{
+				"from":         "families",
+				"localField":   "familyId",
+				"foreignField": "_id",
+				"as":           "family",
+			},
+		},
+		{
+			"$match": bson.M{
+				"family.organizationId": orgID,
+				"active":                true,
+			},
+		},
+		{
+			"$count": "count",
+		},
+	}
+
+	cursor, err := r.coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []bson.M
+	if err := cursor.All(ctx, &results); err != nil {
+		return 0, err
+	}
+
+	if len(results) == 0 {
+		return 0, nil
+	}
+
+	count, ok := results[0]["count"].(int32)
+	if ok {
+		return int64(count), nil
+	}
+	count64, ok := results[0]["count"].(int64)
+	if ok {
+		return count64, nil
+	}
+	return 0, nil
+}

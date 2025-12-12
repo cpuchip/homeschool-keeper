@@ -75,6 +75,47 @@ const router = createRouter({
       ]
     },
     {
+      path: '/admin',
+      component: () => import('@/pages/admin/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresSuperAdmin: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/dashboard'
+        },
+        {
+          path: 'dashboard',
+          name: 'admin-dashboard',
+          component: () => import('@/pages/admin/AdminDashboard.vue')
+        },
+        {
+          path: 'families',
+          name: 'admin-families',
+          component: () => import('@/pages/admin/AdminFamilies.vue')
+        },
+        {
+          path: 'families/:id',
+          name: 'admin-family-detail',
+          component: () => import('@/pages/admin/AdminFamilyDetail.vue')
+        },
+        {
+          path: 'orgs',
+          name: 'admin-orgs',
+          component: () => import('@/pages/admin/AdminOrgs.vue')
+        },
+        {
+          path: 'orgs/:id',
+          name: 'admin-org-detail',
+          component: () => import('@/pages/admin/AdminOrgDetail.vue')
+        },
+        {
+          path: 'storage',
+          name: 'admin-storage',
+          component: () => import('@/pages/admin/AdminStorage.vue')
+        }
+      ]
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue')
