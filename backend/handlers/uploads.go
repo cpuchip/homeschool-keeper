@@ -38,11 +38,12 @@ func NewUploadHandler(
 
 // GetUploadURLRequest is the request body for generating an upload URL
 type GetUploadURLRequest struct {
-	LogEntryID  string `json:"logEntryId"`
-	FileName    string `json:"fileName"`
-	ContentType string `json:"contentType"`
-	SizeBytes   int64  `json:"sizeBytes"`
-	Description string `json:"description,omitempty"`
+	LogEntryID  string  `json:"logEntryId"`
+	GroupID     *string `json:"groupId,omitempty"` // For multi-student logs
+	FileName    string  `json:"fileName"`
+	ContentType string  `json:"contentType"`
+	SizeBytes   int64   `json:"sizeBytes"`
+	Description string  `json:"description,omitempty"`
 }
 
 // GetUploadURLResponse is the response with pre-signed upload URL
@@ -172,6 +173,7 @@ func (h *UploadHandler) GetUploadURL(w http.ResponseWriter, r *http.Request) {
 	sample := &models.WorkSample{
 		FamilyID:    familyID,
 		LogEntryID:  logEntryID,
+		GroupID:     req.GroupID, // Link to all logs in group
 		StudentID:   log.StudentID,
 		FileName:    req.FileName,
 		StorageKey:  storageKey,
@@ -179,6 +181,7 @@ func (h *UploadHandler) GetUploadURL(w http.ResponseWriter, r *http.Request) {
 		SizeBytes:   req.SizeBytes,
 		UploadedBy:  userID,
 		Description: req.Description,
+		SyncStatus:  "synced", // Uploaded directly to R2
 	}
 
 	if err := h.workSamples.Create(r.Context(), sample); err != nil {
@@ -292,8 +295,15 @@ func (h *UploadHandler) ListByLogEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get work samples for this log entry
-	samples, err := h.workSamples.GetByLogEntry(r.Context(), familyID, logEntryID)
+	// Get groupId from log entry to include grouped work samples
+	log, err := h.logs.GetByID(r.Context(), familyID, logEntryID)
+	var groupID *string
+	if err == nil && log != nil {
+		groupID = log.GroupID
+	}
+
+	// Get work samples for this log entry (includes grouped samples)
+	samples, err := h.workSamples.GetByLogEntry(r.Context(), familyID, logEntryID, groupID)
 	if err != nil {
 		InternalError(w)
 		return
@@ -418,14 +428,14 @@ func (h *UploadHandler) GetStorageUsage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	JSON(w, http.StatusOK, map[string]interface{}{
-		"usedBytes":       usedBytes,
-		"limitBytes":      limitBytes,
-		"usedPercent":     float64(usedBytes) / float64(limitBytes) * 100,
-		"fileCount":       count,
-		"uploadsEnabled":  family.Premium.UploadsEnabled,
-		"usedMB":          float64(usedBytes) / 1024 / 1024,
-		"limitMB":         float64(limitBytes) / 1024 / 1024,
-		"remainingBytes":  limitBytes - usedBytes,
+		"usedBytes":      usedBytes,
+		"limitBytes":     limitBytes,
+		"usedPercent":    float64(usedBytes) / float64(limitBytes) * 100,
+		"fileCount":      count,
+		"uploadsEnabled": family.Premium.UploadsEnabled,
+		"usedMB":         float64(usedBytes) / 1024 / 1024,
+		"limitMB":        float64(limitBytes) / 1024 / 1024,
+		"remainingBytes": limitBytes - usedBytes,
 	})
 }
 

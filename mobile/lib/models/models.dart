@@ -7,3 +7,4 @@ export 'log_entry.dart';
 export 'stats.dart';
 export 'student.dart';
 export 'subject.dart';
+export 'work_sample.dart';

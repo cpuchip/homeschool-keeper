@@ -223,6 +223,7 @@ export interface WorkSample {
   id: string
   familyId: string
   logEntryId: string
+  groupId?: string // For multi-student logs
   studentId: string
   fileName: string
   storageKey: string
@@ -230,6 +231,7 @@ export interface WorkSample {
   sizeBytes: number
   uploadedBy: string
   description?: string
+  syncStatus?: 'local' | 'syncing' | 'synced' | 'error'
   createdAt: string
   downloadUrl?: string
   expiresAt?: string

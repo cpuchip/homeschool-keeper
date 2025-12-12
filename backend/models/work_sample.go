@@ -7,17 +7,20 @@ import (
 )
 
 // WorkSample represents a file attached to a log entry (photo, document, etc.)
+// For multi-student logs (same groupId), work samples are shared across all logs in the group.
 type WorkSample struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	FamilyID    primitive.ObjectID `bson:"familyId" json:"familyId"`
-	LogEntryID  primitive.ObjectID `bson:"logEntryId" json:"logEntryId"`
-	StudentID   primitive.ObjectID `bson:"studentId" json:"studentId"`
-	FileName    string             `bson:"fileName" json:"fileName"`       // Original filename
-	StorageKey  string             `bson:"storageKey" json:"storageKey"`   // R2 object key
-	ContentType string             `bson:"contentType" json:"contentType"` // MIME type
+	LogEntryID  primitive.ObjectID `bson:"logEntryId" json:"logEntryId"`                     // Primary log entry
+	GroupID     *string            `bson:"groupId,omitempty" json:"groupId,omitempty"`       // Links to all logs in group
+	StudentID   primitive.ObjectID `bson:"studentId" json:"studentId"`                       // Primary student (uploader's context)
+	FileName    string             `bson:"fileName" json:"fileName"`                         // Original filename
+	StorageKey  string             `bson:"storageKey" json:"storageKey"`                     // R2 object key (or local path for mobile)
+	ContentType string             `bson:"contentType" json:"contentType"`                   // MIME type
 	SizeBytes   int64              `bson:"sizeBytes" json:"sizeBytes"`
-	UploadedBy  primitive.ObjectID `bson:"uploadedBy" json:"uploadedBy"` // User who uploaded
+	UploadedBy  primitive.ObjectID `bson:"uploadedBy" json:"uploadedBy"`                     // User who uploaded
 	Description string             `bson:"description,omitempty" json:"description,omitempty"`
+	SyncStatus  string             `bson:"syncStatus,omitempty" json:"syncStatus,omitempty"` // "local", "syncing", "synced"
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 }
 

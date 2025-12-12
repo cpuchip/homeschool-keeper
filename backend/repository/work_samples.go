@@ -76,11 +76,44 @@ func (r *WorkSampleRepository) GetByID(ctx context.Context, familyID, id primiti
 }
 
 // GetByLogEntry retrieves all work samples for a specific log entry
-func (r *WorkSampleRepository) GetByLogEntry(ctx context.Context, familyID, logEntryID primitive.ObjectID) ([]models.WorkSample, error) {
+// Also includes work samples linked via groupId
+func (r *WorkSampleRepository) GetByLogEntry(ctx context.Context, familyID, logEntryID primitive.ObjectID, groupID *string) ([]models.WorkSample, error) {
+	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: 1}})
+	
+	// Build query: match by logEntryId OR by groupId (if provided)
+	query := bson.M{
+		"familyId": familyID,
+	}
+	
+	if groupID != nil && *groupID != "" {
+		// Include samples attached to this log OR any log in the same group
+		query["$or"] = []bson.M{
+			{"logEntryId": logEntryID},
+			{"groupId": *groupID},
+		}
+	} else {
+		query["logEntryId"] = logEntryID
+	}
+	
+	cursor, err := r.coll.Find(ctx, query, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var samples []models.WorkSample
+	if err := cursor.All(ctx, &samples); err != nil {
+		return nil, err
+	}
+	return samples, nil
+}
+
+// GetByGroupID retrieves all work samples for a group of log entries
+func (r *WorkSampleRepository) GetByGroupID(ctx context.Context, familyID primitive.ObjectID, groupID string) ([]models.WorkSample, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: 1}})
 	cursor, err := r.coll.Find(ctx, bson.M{
-		"familyId":   familyID,
-		"logEntryId": logEntryID,
+		"familyId": familyID,
+		"groupId":  groupID,
 	}, opts)
 	if err != nil {
 		return nil, err
