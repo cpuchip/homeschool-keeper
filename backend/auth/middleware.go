@@ -61,9 +61,29 @@ func OptionalAuth(next http.Handler) http.Handler {
 func GetUserFromContext(ctx context.Context) *SessionData {
 	session, ok := ctx.Value(UserContextKey).(*SessionData)
 	if !ok {
+		// Also check for UserSession (used in tests)
+		if userSession, ok := ctx.Value(UserContextKey).(*UserSession); ok {
+			return &SessionData{
+				UserID:   userSession.UserID,
+				FamilyID: userSession.FamilyID,
+				Role:     userSession.Role,
+			}
+		}
 		return nil
 	}
 	return session
+}
+
+// UserSession is a simplified session for testing
+type UserSession struct {
+	UserID   string
+	FamilyID string
+	Role     string
+}
+
+// SetUserInContext sets a user session in the context (for testing)
+func SetUserInContext(ctx context.Context, session *UserSession) context.Context {
+	return context.WithValue(ctx, UserContextKey, session)
 }
 
 // RequireRole is middleware that requires a specific role (in addition to authentication)

@@ -105,3 +105,16 @@ func (mc *MongoContainer) ClearCollections(t *testing.T) {
 func (mc *MongoContainer) Collection(name string) *mongo.Collection {
 	return mc.Database.Collection(name)
 }
+
+// SetupTestDB is an alias for SetupMongoDB that returns just the database.
+// This is a convenience function for tests that don't need the full MongoContainer.
+func SetupTestDB(t *testing.T) *mongo.Database {
+	t.Helper()
+	mc := SetupMongoDB(t)
+	return mc.Database
+}
+
+// CleanupTestDB is a no-op for compatibility - cleanup is handled by t.Cleanup
+func CleanupTestDB(t *testing.T, db *mongo.Database) {
+	// Cleanup is handled automatically by t.Cleanup in SetupMongoDB
+}

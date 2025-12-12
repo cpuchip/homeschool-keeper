@@ -75,13 +75,7 @@ func (h *UploadHandler) GetUploadURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if R2 client is configured
-	if h.r2 == nil {
-		Error(w, http.StatusServiceUnavailable, "File uploads are not configured")
-		return
-	}
-
-	// Check premium feature access
+	// Check premium feature access first (better user experience - they know what to fix)
 	family, err := h.families.GetByID(r.Context(), familyID)
 	if err != nil {
 		InternalError(w)
@@ -90,6 +84,12 @@ func (h *UploadHandler) GetUploadURL(w http.ResponseWriter, r *http.Request) {
 
 	if !family.Premium.UploadsEnabled {
 		Error(w, http.StatusForbidden, "File uploads require a premium subscription")
+		return
+	}
+
+	// Check if R2 client is configured
+	if h.r2 == nil {
+		Error(w, http.StatusServiceUnavailable, "File uploads are not configured")
 		return
 	}
 
