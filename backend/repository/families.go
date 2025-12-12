@@ -86,3 +86,21 @@ func (r *FamilyRepository) UpdateSchoolYear(ctx context.Context, id primitive.Ob
 func (r *FamilyRepository) CompleteOnboarding(ctx context.Context, id primitive.ObjectID) error {
 	return r.Update(ctx, id, bson.M{"onboardingDone": true})
 }
+
+// UpdateStorageUsage updates the storage used bytes for a family (can be positive or negative)
+func (r *FamilyRepository) UpdateStorageUsage(ctx context.Context, id primitive.ObjectID, deltaBytes int64) error {
+	_, err := r.coll.UpdateOne(ctx, bson.M{"_id": id}, bson.M{
+		"$inc": bson.M{"premium.storageUsedBytes": deltaBytes},
+		"$set": bson.M{"updatedAt": time.Now().UTC()},
+	})
+	return err
+}
+
+// SetPremiumFeatures updates the premium feature flags for a family
+func (r *FamilyRepository) SetPremiumFeatures(ctx context.Context, id primitive.ObjectID, syncEnabled, uploadsEnabled bool, storageLimitBytes int64) error {
+	return r.Update(ctx, id, bson.M{
+		"premium.syncEnabled":       syncEnabled,
+		"premium.uploadsEnabled":    uploadsEnabled,
+		"premium.storageLimitBytes": storageLimitBytes,
+	})
+}

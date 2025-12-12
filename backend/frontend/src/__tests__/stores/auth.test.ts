@@ -36,6 +36,13 @@ const mockFamily: Family = {
     autoApproveLogs: true,
     requireSubjectGoals: false,
   },
+  premium: {
+    syncEnabled: false,
+    uploadsEnabled: false,
+    storageUsedBytes: 0,
+    storageLimitBytes: 104857600, // 100MB
+    subscriptionTier: 'free',
+  },
   onboardingDone: true,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',

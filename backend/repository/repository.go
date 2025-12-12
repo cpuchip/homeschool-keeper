@@ -11,36 +11,39 @@ import (
 
 // Collections names
 const (
-	CollUsers     = "users"
-	CollFamilies  = "families"
-	CollOrgs      = "organizations"
-	CollStudents  = "students"
-	CollSubjects  = "subjects"
-	CollLogs      = "log_entries"
-	CollLocations = "locations"
+	CollUsers       = "users"
+	CollFamilies    = "families"
+	CollOrgs        = "organizations"
+	CollStudents    = "students"
+	CollSubjects    = "subjects"
+	CollLogs        = "log_entries"
+	CollLocations   = "locations"
+	CollWorkSamples = "work_samples"
 )
 
 // Repository provides access to all data repositories
 type Repository struct {
-	db        *mongo.Database
-	Users     *UserRepository
-	Families  *FamilyRepository
-	Students  *StudentRepository
-	Subjects  *SubjectRepository
-	Logs      *LogRepository
-	Locations *LocationRepository
+	db          *mongo.Database
+	Users       *UserRepository
+	Families    *FamilyRepository
+	Students    *StudentRepository
+	Subjects    *SubjectRepository
+	Logs        *LogRepository
+	Locations   *LocationRepository
+	WorkSamples *WorkSampleRepository
 }
 
 // New creates a new Repository with all sub-repositories
 func New(db *mongo.Database) *Repository {
 	return &Repository{
-		db:        db,
-		Users:     NewUserRepository(db),
-		Families:  NewFamilyRepository(db),
-		Students:  NewStudentRepository(db),
-		Subjects:  NewSubjectRepository(db),
-		Logs:      NewLogRepository(db),
-		Locations: NewLocationRepository(db),
+		db:          db,
+		Users:       NewUserRepository(db),
+		Families:    NewFamilyRepository(db),
+		Students:    NewStudentRepository(db),
+		Subjects:    NewSubjectRepository(db),
+		Logs:        NewLogRepository(db),
+		Locations:   NewLocationRepository(db),
+		WorkSamples: NewWorkSampleRepository(db),
 	}
 }
 
@@ -67,6 +70,9 @@ func (r *Repository) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 	if err := r.Locations.EnsureIndexes(ctx); err != nil {
+		return err
+	}
+	if err := r.WorkSamples.EnsureIndexes(ctx); err != nil {
 		return err
 	}
 	return nil

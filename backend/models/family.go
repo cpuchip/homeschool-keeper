@@ -19,6 +19,7 @@ type Family struct {
 	State           string              `bson:"state" json:"state"`             // MO, etc.
 	Timezone        string              `bson:"timezone" json:"timezone"`
 	Settings        FamilySettings      `bson:"settings" json:"settings"`
+	Premium         PremiumFeatures     `bson:"premium" json:"premium"` // Premium feature flags
 	OnboardingDone  bool                `bson:"onboardingDone" json:"onboardingDone"`
 	CreatedAt       time.Time           `bson:"createdAt" json:"createdAt"`
 	UpdatedAt       time.Time           `bson:"updatedAt" json:"updatedAt"`
@@ -28,6 +29,16 @@ type Family struct {
 type FamilySettings struct {
 	AutoApproveLogs     bool `bson:"autoApproveLogs" json:"autoApproveLogs"`         // default: true
 	RequireSubjectGoals bool `bson:"requireSubjectGoals" json:"requireSubjectGoals"` // default: false
+}
+
+// PremiumFeatures contains flags for premium/paid features
+type PremiumFeatures struct {
+	SyncEnabled       bool       `bson:"syncEnabled" json:"syncEnabled"`             // Server sync (mobile)
+	UploadsEnabled    bool       `bson:"uploadsEnabled" json:"uploadsEnabled"`       // Work sample uploads
+	StorageUsedBytes  int64      `bson:"storageUsedBytes" json:"storageUsedBytes"`   // Current storage usage
+	StorageLimitBytes int64      `bson:"storageLimitBytes" json:"storageLimitBytes"` // Storage limit (0 = default)
+	SubscriptionTier  string     `bson:"subscriptionTier" json:"subscriptionTier"`   // "free", "basic", "premium"
+	SubscriptionEnd   *time.Time `bson:"subscriptionEnd,omitempty" json:"subscriptionEnd,omitempty"`
 }
 
 // DefaultHourIncrement is the default hour increment (15 minutes)

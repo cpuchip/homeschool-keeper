@@ -21,6 +21,16 @@ export interface FamilySettings {
   requireSubjectGoals: boolean
 }
 
+// Premium feature flags
+export interface PremiumFeatures {
+  syncEnabled: boolean
+  uploadsEnabled: boolean
+  storageUsedBytes: number
+  storageLimitBytes: number
+  subscriptionTier: 'free' | 'basic' | 'premium'
+  subscriptionEnd?: string
+}
+
 export interface Family {
   id: string
   name: string
@@ -32,6 +42,7 @@ export interface Family {
   state: string // e.g., 'MO'
   timezone: string
   settings: FamilySettings
+  premium: PremiumFeatures // Premium feature flags
   onboardingDone: boolean
   createdAt: string
   updatedAt: string
@@ -205,4 +216,41 @@ export interface LogFilters {
   status?: 'pending' | 'approved'
   page?: number
   limit?: number
+}
+
+// Work Sample (file attached to log entry)
+export interface WorkSample {
+  id: string
+  familyId: string
+  logEntryId: string
+  studentId: string
+  fileName: string
+  storageKey: string
+  contentType: string
+  sizeBytes: number
+  uploadedBy: string
+  description?: string
+  createdAt: string
+  downloadUrl?: string
+  expiresAt?: string
+}
+
+// Storage usage info
+export interface StorageUsage {
+  usedBytes: number
+  limitBytes: number
+  usedPercent: number
+  fileCount: number
+  uploadsEnabled: boolean
+  usedMB: number
+  limitMB: number
+  remainingBytes: number
+}
+
+// Upload URL response
+export interface UploadURLResponse {
+  uploadUrl: string
+  workSampleId: string
+  storageKey: string
+  expiresAt: string
 }

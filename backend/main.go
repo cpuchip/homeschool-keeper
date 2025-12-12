@@ -18,6 +18,7 @@ import (
 	"github.com/cpuchip/homeschool-keeper/backend/db"
 	"github.com/cpuchip/homeschool-keeper/backend/handlers"
 	"github.com/cpuchip/homeschool-keeper/backend/repository"
+	"github.com/cpuchip/homeschool-keeper/backend/storage"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -118,6 +119,34 @@ func main() {
 
 	// Only register API routes if database is available
 	if repo != nil {
+		// Initialize R2 storage client if configured
+		var r2Client *storage.R2Client
+		if cfg.R2Configured() {
+			uploadExpiry, err := time.ParseDuration(cfg.R2UploadURLExpiry)
+			if err != nil {
+				uploadExpiry = 5 * time.Minute
+			}
+			downloadExpiry, err := time.ParseDuration(cfg.R2DownloadURLExpiry)
+			if err != nil {
+				downloadExpiry = 1 * time.Hour
+			}
+
+			r2Client, err = storage.NewR2Client(storage.R2Config{
+				AccountID:         cfg.R2AccountID,
+				AccessKeyID:       cfg.R2AccessKeyID,
+				SecretAccessKey:   cfg.R2SecretAccessKey,
+				BucketName:        cfg.R2BucketName,
+				UploadURLExpiry:   uploadExpiry,
+				DownloadURLExpiry: downloadExpiry,
+			})
+			if err != nil {
+				log.Printf("⚠️ Failed to initialize R2 storage: %v", err)
+				log.Println("  File uploads will be disabled")
+			} else {
+				log.Printf("✅ R2 storage initialized (bucket: %s)", cfg.R2BucketName)
+			}
+		}
+
 		// Initialize handlers
 		authHandler := handlers.NewAuthHandler(repo.Users, repo.Families, repo.Subjects)
 		studentHandler := handlers.NewStudentHandler(repo.Students, repo.Logs)
@@ -126,6 +155,7 @@ func main() {
 		statsHandler := handlers.NewStatsHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
 		onboardingHandler := handlers.NewOnboardingHandler(repo.Families, repo.Subjects, repo.Students)
 		locationHandler := handlers.NewLocationHandler(repo.Locations)
+		uploadHandler := handlers.NewUploadHandler(r2Client, repo.WorkSamples, repo.Families, repo.Logs)
 
 		// Create a unified auth wrapper that works for both web (cookies) and mobile (JWT)
 		// If JWT is configured, use RequireEitherAuthFunc; otherwise fallback to session-only
@@ -182,6 +212,13 @@ func main() {
 		api.HandleFunc("/v1/locations/{id}", requireAuth(locationHandler.Get)).Methods("GET")
 		api.HandleFunc("/v1/locations/{id}", requireAuth(locationHandler.Update)).Methods("PATCH")
 		api.HandleFunc("/v1/locations/{id}", requireAuth(locationHandler.Delete)).Methods("DELETE")
+
+		// Upload/Work Sample routes (authentication required - works with both cookie and JWT)
+		api.HandleFunc("/v1/uploads/url", requireAuth(uploadHandler.GetUploadURL)).Methods("POST")
+		api.HandleFunc("/v1/uploads/confirm", requireAuth(uploadHandler.ConfirmUpload)).Methods("POST")
+		api.HandleFunc("/v1/uploads/usage", requireAuth(uploadHandler.GetStorageUsage)).Methods("GET")
+		api.HandleFunc("/v1/logs/{id}/work-samples", requireAuth(uploadHandler.ListByLogEntry)).Methods("GET")
+		api.HandleFunc("/v1/work-samples/{id}", requireAuth(uploadHandler.Delete)).Methods("DELETE")
 
 		// Mobile auth routes (JWT-based, no cookies)
 		if jwtManager != nil {

@@ -24,6 +24,15 @@ type Config struct {
 	JWTSecret        string
 	JWTAccessExpiry  string
 	JWTRefreshExpiry string
+
+	// R2 Storage settings
+	R2AccountID         string
+	R2AccessKeyID       string
+	R2SecretAccessKey   string
+	R2BucketName        string
+	R2UploadURLExpiry   string
+	R2DownloadURLExpiry string
+	MaxUploadSizeMB     int
 }
 
 // Load reads configuration from environment variables
@@ -42,6 +51,14 @@ func Load() *Config {
 		JWTSecret:           getEnv("JWT_SECRET", ""),
 		JWTAccessExpiry:     getEnv("JWT_ACCESS_EXPIRY", "15m"),
 		JWTRefreshExpiry:    getEnv("JWT_REFRESH_EXPIRY", "168h"),
+		// R2 Storage
+		R2AccountID:         getEnv("R2_ACCOUNT_ID", ""),
+		R2AccessKeyID:       getEnv("R2_ACCESS_KEY_ID", ""),
+		R2SecretAccessKey:   getEnv("R2_SECRET_ACCESS_KEY", ""),
+		R2BucketName:        getEnv("R2_BUCKET_NAME", "hsmlogs"),
+		R2UploadURLExpiry:   getEnv("R2_UPLOAD_URL_EXPIRY", "5m"),
+		R2DownloadURLExpiry: getEnv("R2_DOWNLOAD_URL_EXPIRY", "1h"),
+		MaxUploadSizeMB:     getEnvInt("MAX_UPLOAD_SIZE_MB", 10),
 	}
 
 	// Build MongoDB URI from parts if not provided directly
@@ -60,6 +77,12 @@ func Load() *Config {
 	fmt.Printf("  SESSION_SECRET: %s\n", maskSecret(cfg.SessionSecret))
 	fmt.Printf("  ENCRYPTION_MASTER_KEY: %s\n", maskSecret(cfg.EncryptionMasterKey))
 	fmt.Printf("  JWT_SECRET: %s\n", maskSecret(cfg.JWTSecret))
+	if cfg.R2Configured() {
+		fmt.Printf("  R2_BUCKET_NAME: %s\n", cfg.R2BucketName)
+		fmt.Printf("  R2_ACCOUNT_ID: %s\n", maskSecret(cfg.R2AccountID))
+	} else {
+		fmt.Println("  R2: (not configured - file uploads disabled)")
+	}
 
 	return cfg
 }
@@ -67,6 +90,17 @@ func Load() *Config {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intVal, err := fmt.Sscanf(value, "%d", new(int)); err == nil && intVal > 0 {
+			var result int
+			fmt.Sscanf(value, "%d", &result)
+			return result
+		}
 	}
 	return defaultValue
 }
@@ -138,4 +172,9 @@ func maskSecret(secret string) string {
 		return "(not set)"
 	}
 	return "****"
+}
+
+// R2Configured returns true if R2 storage is configured
+func (c *Config) R2Configured() bool {
+	return c.R2AccountID != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != ""
 }
