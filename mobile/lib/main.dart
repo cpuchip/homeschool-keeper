@@ -6,6 +6,7 @@ import 'core/router.dart';
 import 'core/theme.dart';
 import 'core/sync/connectivity_service.dart';
 import 'features/export/failsafe_backup_service.dart';
+import 'repositories/work_sample_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,10 @@ void main() async {
   
   // Initialize local database (Hive)
   await DatabaseService.instance.initialize();
+  
+  // Initialize work sample repository
+  final workSampleRepo = WorkSampleRepository();
+  await workSampleRepo.init();
   
   // Initialize connectivity monitoring
   await ConnectivityService.instance.init();

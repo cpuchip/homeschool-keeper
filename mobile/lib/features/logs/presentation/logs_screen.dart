@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../models/log_entry.dart';
 import '../../../models/student.dart';
@@ -179,118 +180,122 @@ class _LogCard extends ConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(2),
+      child: InkWell(
+        onTap: () => context.push('/logs/${log.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          subjectName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          studentName,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color:
+                                    Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        subjectName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        hoursText,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                       ),
                       Text(
-                        studentName,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color:
-                                  Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                        dateFormat.format(log.date),
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      hoursText,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
+                  const SizedBox(width: 8),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                        _showEditDialog(context, ref, log, studentName, subjectName);
+                      } else if (value == 'delete') {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Log'),
+                            content: const Text(
+                                'Are you sure you want to delete this log entry?',),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
                           ),
-                    ),
-                    Text(
-                      dateFormat.format(log.date),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == 'edit') {
-                      _showEditDialog(context, ref, log, studentName, subjectName);
-                    } else if (value == 'delete') {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Delete Log'),
-                          content: const Text(
-                              'Are you sure you want to delete this log entry?',),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
-                        await ref.read(logsProvider.notifier).deleteLog(log.id);
+                        );
+                        if (confirmed == true) {
+                          await ref.read(logsProvider.notifier).deleteLog(log.id);
+                        }
                       }
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                  ],
-                ),
-              ],
-            ),
-            if (log.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                log.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-            if (log.locationType != 'home') ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    log.locationName ?? LocationType.displayName(log.locationType),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
                   ),
                 ],
               ),
+              if (log.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  log.description,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+              if (log.locationType != 'home') ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      log.locationName ?? LocationType.displayName(log.locationType),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

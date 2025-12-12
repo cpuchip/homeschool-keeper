@@ -79,12 +79,12 @@ func (r *WorkSampleRepository) GetByID(ctx context.Context, familyID, id primiti
 // Also includes work samples linked via groupId
 func (r *WorkSampleRepository) GetByLogEntry(ctx context.Context, familyID, logEntryID primitive.ObjectID, groupID *string) ([]models.WorkSample, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: 1}})
-	
+
 	// Build query: match by logEntryId OR by groupId (if provided)
 	query := bson.M{
 		"familyId": familyID,
 	}
-	
+
 	if groupID != nil && *groupID != "" {
 		// Include samples attached to this log OR any log in the same group
 		query["$or"] = []bson.M{
@@ -94,7 +94,7 @@ func (r *WorkSampleRepository) GetByLogEntry(ctx context.Context, familyID, logE
 	} else {
 		query["logEntryId"] = logEntryID
 	}
-	
+
 	cursor, err := r.coll.Find(ctx, query, opts)
 	if err != nil {
 		return nil, err

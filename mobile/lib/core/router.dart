@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/logs/presentation/log_detail_screen.dart';
 import '../features/logs/presentation/quick_log_screen.dart';
 import '../features/logs/presentation/logs_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
@@ -68,6 +69,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/logs',
             builder: (context, state) => const LogsScreen(),
+          ),
+          GoRoute(
+            path: '/logs/:id',
+            builder: (context, state) => LogDetailScreen(
+              logId: state.pathParameters['id']!,
+            ),
           ),
           GoRoute(
             path: '/students',
