@@ -21,24 +21,24 @@ type TelemetryEvent struct {
 
 // Standard event names (Tier 1 - Essential)
 const (
-	EventAppInstall   = "app_install"    // First launch
-	EventSessionStart = "session_start"  // App opened
-	EventSessionEnd   = "session_end"    // App closed (with duration in data)
+	EventAppInstall   = "app_install"   // First launch
+	EventSessionStart = "session_start" // App opened
+	EventSessionEnd   = "session_end"   // App closed (with duration in data)
 )
 
 // Tier 2 - Usage events
 const (
-	EventScreenView          = "screen_view"           // data: {screen: "dashboard"}
+	EventScreenView          = "screen_view" // data: {screen: "dashboard"}
 	EventOnboardingStarted   = "onboarding_started"
 	EventOnboardingCompleted = "onboarding_completed"
 	EventAccountCreated      = "account_created"
 	EventSyncEnabled         = "sync_enabled"
-	EventLogCreated          = "log_created"           // Just count, no content
+	EventLogCreated          = "log_created" // Just count, no content
 	EventLogEdited           = "log_edited"
 	EventStudentAdded        = "student_added"
 	EventSubjectAdded        = "subject_added"
 	EventWorkSampleAdded     = "work_sample_added"
-	EventExportGenerated     = "export_generated"      // data: {format: "pdf"}
-	EventTelemetryOptOut     = "telemetry_opt_out"     // User disabled telemetry
-	EventTelemetryOptIn      = "telemetry_opt_in"      // User re-enabled telemetry
+	EventExportGenerated     = "export_generated"  // data: {format: "pdf"}
+	EventTelemetryOptOut     = "telemetry_opt_out" // User disabled telemetry
+	EventTelemetryOptIn      = "telemetry_opt_in"  // User re-enabled telemetry
 )

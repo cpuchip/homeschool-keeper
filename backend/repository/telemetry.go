@@ -65,7 +65,7 @@ func (r *TelemetryRepository) CreateBatch(ctx context.Context, events []models.T
 	if len(events) == 0 {
 		return nil
 	}
-	
+
 	docs := make([]interface{}, len(events))
 	now := time.Now().UTC()
 	for i := range events {
@@ -75,7 +75,7 @@ func (r *TelemetryRepository) CreateBatch(ctx context.Context, events []models.T
 		}
 		docs[i] = events[i]
 	}
-	
+
 	_, err := r.coll.InsertMany(ctx, docs)
 	return err
 }
@@ -203,7 +203,7 @@ func (r *TelemetryRepository) countDistinctInstalls(ctx context.Context, match b
 		{"$group": bson.M{"_id": "$installId"}},
 		{"$count": "count"},
 	}
-	
+
 	cursor, err := r.coll.Aggregate(ctx, pipeline)
 	if err != nil {
 		return 0, err
@@ -218,7 +218,7 @@ func (r *TelemetryRepository) countDistinctInstalls(ctx context.Context, match b
 	if len(results) == 0 {
 		return 0, nil
 	}
-	
+
 	count, ok := results[0]["count"].(int32)
 	if ok {
 		return int64(count), nil

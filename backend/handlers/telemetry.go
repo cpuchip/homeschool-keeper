@@ -203,7 +203,7 @@ func sanitizeData(data map[string]interface{}) map[string]interface{} {
 	if data == nil {
 		return nil
 	}
-	
+
 	// Limit to 10 keys, simple values only
 	sanitized := make(map[string]interface{})
 	count := 0
