@@ -78,16 +78,16 @@ func (h *AdminHandler) requireSuperAdmin(w http.ResponseWriter, r *http.Request)
 
 // DashboardStats contains overview statistics for the admin dashboard
 type DashboardStats struct {
-	TotalFamilies     int64          `json:"totalFamilies"`
-	TotalOrgs         int64          `json:"totalOrgs"`
-	TotalStudents     int64          `json:"totalStudents"`
-	TotalLogs         int64          `json:"totalLogs"`
-	TotalWorkSamples  int64          `json:"totalWorkSamples"`
-	TotalStorageBytes int64          `json:"totalStorageBytes"`
-	TotalStorageMB    float64        `json:"totalStorageMB"`
-	SyncEnabled       int64          `json:"syncEnabled"`
-	UploadsEnabled    int64          `json:"uploadsEnabled"`
-	GeneratedAt       time.Time      `json:"generatedAt"`
+	TotalFamilies     int64     `json:"totalFamilies"`
+	TotalOrgs         int64     `json:"totalOrgs"`
+	TotalStudents     int64     `json:"totalStudents"`
+	TotalLogs         int64     `json:"totalLogs"`
+	TotalWorkSamples  int64     `json:"totalWorkSamples"`
+	TotalStorageBytes int64     `json:"totalStorageBytes"`
+	TotalStorageMB    float64   `json:"totalStorageMB"`
+	SyncEnabled       int64     `json:"syncEnabled"`
+	UploadsEnabled    int64     `json:"uploadsEnabled"`
+	GeneratedAt       time.Time `json:"generatedAt"`
 }
 
 // GetDashboardStats handles GET /api/v1/admin/stats
@@ -182,19 +182,19 @@ func (h *AdminHandler) ListFamilies(w http.ResponseWriter, r *http.Request) {
 
 // FamilyDetail is detailed info about a family
 type FamilyDetail struct {
-	ID                string           `json:"id"`
-	Name              string           `json:"name"`
-	State             string           `json:"state"`
-	HourIncrement     float64          `json:"hourIncrement"`
-	Premium           models.PremiumFeatures `json:"premium"`
-	Students          []StudentInfo    `json:"students"`
-	Organizations     []OrgInfo        `json:"organizations"`
-	LogCount          int64            `json:"logCount"`
-	WorkSampleCount   int64            `json:"workSampleCount"`
-	StorageUsedBytes  int64            `json:"storageUsedBytes"`
-	StorageUsedMB     float64          `json:"storageUsedMB"`
-	CreatedAt         time.Time        `json:"createdAt"`
-	UpdatedAt         time.Time        `json:"updatedAt"`
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	State            string                 `json:"state"`
+	HourIncrement    float64                `json:"hourIncrement"`
+	Premium          models.PremiumFeatures `json:"premium"`
+	Students         []StudentInfo          `json:"students"`
+	Organizations    []OrgInfo              `json:"organizations"`
+	LogCount         int64                  `json:"logCount"`
+	WorkSampleCount  int64                  `json:"workSampleCount"`
+	StorageUsedBytes int64                  `json:"storageUsedBytes"`
+	StorageUsedMB    float64                `json:"storageUsedMB"`
+	CreatedAt        time.Time              `json:"createdAt"`
+	UpdatedAt        time.Time              `json:"updatedAt"`
 }
 
 // StudentInfo is minimal student info for admin view
@@ -336,9 +336,9 @@ func (h *AdminHandler) UpdateFamilyPremium(w http.ResponseWriter, r *http.Reques
 	}
 
 	JSON(w, http.StatusOK, map[string]interface{}{
-		"message":        "Premium settings updated",
-		"syncEnabled":    syncEnabled,
-		"uploadsEnabled": uploadsEnabled,
+		"message":           "Premium settings updated",
+		"syncEnabled":       syncEnabled,
+		"uploadsEnabled":    uploadsEnabled,
 		"storageLimitBytes": storageLimit,
 	})
 }
@@ -390,15 +390,15 @@ func (h *AdminHandler) ListOrganizations(w http.ResponseWriter, r *http.Request)
 
 // OrgDetail is detailed info about an organization
 type OrgDetail struct {
-	ID           string         `json:"id"`
-	Name         string         `json:"name"`
-	Description  string         `json:"description"`
-	Families     []FamilyInfo   `json:"families"`
-	FamilyCount  int64          `json:"familyCount"`
-	StudentCount int64          `json:"studentCount"`
-	LogCount     int64          `json:"logCount"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
+	ID           string       `json:"id"`
+	Name         string       `json:"name"`
+	Description  string       `json:"description"`
+	Families     []FamilyInfo `json:"families"`
+	FamilyCount  int64        `json:"familyCount"`
+	StudentCount int64        `json:"studentCount"`
+	LogCount     int64        `json:"logCount"`
+	CreatedAt    time.Time    `json:"createdAt"`
+	UpdatedAt    time.Time    `json:"updatedAt"`
 }
 
 // FamilyInfo is minimal family info
@@ -461,12 +461,12 @@ func (h *AdminHandler) GetOrganization(w http.ResponseWriter, r *http.Request) {
 
 // StorageSummary is storage info per family
 type StorageSummary struct {
-	FamilyID        string  `json:"familyId"`
-	FamilyName      string  `json:"familyName"`
-	FileCount       int64   `json:"fileCount"`
-	TotalBytes      int64   `json:"totalBytes"`
-	TotalMB         float64 `json:"totalMB"`
-	UploadsEnabled  bool    `json:"uploadsEnabled"`
+	FamilyID       string  `json:"familyId"`
+	FamilyName     string  `json:"familyName"`
+	FileCount      int64   `json:"fileCount"`
+	TotalBytes     int64   `json:"totalBytes"`
+	TotalMB        float64 `json:"totalMB"`
+	UploadsEnabled bool    `json:"uploadsEnabled"`
 }
 
 // GetStorageStats handles GET /api/v1/admin/storage
