@@ -19,6 +19,7 @@ const (
 	CollLogs        = "log_entries"
 	CollLocations   = "locations"
 	CollWorkSamples = "work_samples"
+	CollTelemetry   = "telemetry_events" // Separate from user data
 )
 
 // Repository provides access to all data repositories

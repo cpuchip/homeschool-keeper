@@ -144,3 +144,32 @@ export async function getStorageStats(): Promise<StorageSummary[]> {
   const response = await client.get('/api/v1/admin/storage')
   return response.data
 }
+
+// Telemetry stats types
+export interface TelemetryStats {
+  totalEvents: number
+  uniqueInstalls: number
+  activeToday: number
+  activeThisWeek: number
+  activeThisMonth: number
+  platformBreakdown: Record<string, number>
+  eventBreakdown: Record<string, number>
+  versionBreakdown: Record<string, number>
+}
+
+export interface DailyCount {
+  date: string
+  count: number
+}
+
+// Get telemetry stats
+export async function getTelemetryStats(): Promise<TelemetryStats> {
+  const response = await client.get('/api/v1/admin/telemetry')
+  return response.data
+}
+
+// Get daily active users
+export async function getTelemetryDAU(): Promise<DailyCount[]> {
+  const response = await client.get('/api/v1/admin/telemetry/dau')
+  return response.data
+}

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, Family } from '@/types'
 import { authApi, type RegisterRequest } from '@/api/auth'
+import { telemetry, TelemetryEvents } from '@/api/telemetry'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -78,6 +79,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authApi.register(data)
       user.value = response.user
       family.value = response.family
+      // Track account creation
+      telemetry.trackEvent(TelemetryEvents.ACCOUNT_CREATED)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string }
       error.value = err.response?.data?.error || err.message || 'Registration failed'

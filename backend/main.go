@@ -230,6 +230,19 @@ func main() {
 			api.HandleFunc("/v1/mobile/auth/me", requireJWT(mobileAuthHandler.Me)).Methods("GET")
 		}
 
+		// Telemetry routes (no auth - anonymous tracking)
+		telemetryRepo := repository.NewTelemetryRepository(database)
+		telemetryHandler := handlers.NewTelemetryHandler(telemetryRepo)
+		api.HandleFunc("/v1/telemetry", telemetryHandler.Track).Methods("POST")
+		api.HandleFunc("/v1/telemetry/batch", telemetryHandler.TrackBatch).Methods("POST")
+
+		// Ensure telemetry indexes
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if err := telemetryRepo.EnsureIndexes(ctx); err != nil {
+			log.Printf("Warning: Failed to create telemetry indexes: %v", err)
+		}
+		cancel()
+
 		// Super Admin routes (authentication required, super admin check in handlers)
 		orgsRepo := repository.NewOrganizationRepository(database)
 		adminHandler := handlers.NewAdminHandler(
@@ -239,6 +252,7 @@ func main() {
 			repo.Students,
 			repo.Logs,
 			repo.WorkSamples,
+			telemetryRepo,
 			r2Client,
 		)
 		handlers.RegisterAdminRoutes(r, adminHandler)

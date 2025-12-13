@@ -57,6 +57,8 @@ Never collect data that could identify or profile children (students).
 | Onboarding Completion | Conversion funnel | Low |
 | Account Created (bool) | Sync adoption rate | Low |
 | Sync Enabled (bool) | Premium feature interest | Low |
+| Export Generated (count) | Feature usage | Low |
+| Work Sample Added (count) | Engagement with media features | Low |
 
 ### Tier 3: Aggregated (No Individual Data)
 
@@ -269,17 +271,25 @@ Add to super admin portal:
    - Recommendation: Opt-out (default on, can disable)
    - More data, still privacy-respecting
 
+Opt-out by default (which means enabled at first), but include that on the on-boarding screen and in settings
+
 2. **Third-party or self-hosted?**
    - Recommendation: Self-hosted for now (simple endpoint)
    - Can add PostHog later for advanced analytics
+
+Completely self hosted, no third party add a telemetry collection in the db
 
 3. **How much to track?**
    - Recommendation: Start minimal (Tier 1 only)
    - Add Tier 2 once system is stable
 
+I feel comportable with tier 1 and tier 2 as long as no PII is collected and this is disconnected from user accounts
+
 4. **Track errors in detail?**
    - Recommendation: Yes, crashes are critical
    - Use Firebase Crashlytics or Sentry (privacy-reviewed)
+
+Lets not worry about errors, because we can gather some crash from android/iOS stores
 
 ---
 

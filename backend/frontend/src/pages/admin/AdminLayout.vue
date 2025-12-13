@@ -23,6 +23,7 @@ const tabs = [
   { id: 'families', label: 'Families', icon: '👨‍👩‍👧‍👦' },
   { id: 'orgs', label: 'Organizations', icon: '🏢' },
   { id: 'storage', label: 'R2 Storage', icon: '💾' },
+  { id: 'telemetry', label: 'Telemetry', icon: '📈' },
 ]
 
 function navigateToTab(tabId: string) {

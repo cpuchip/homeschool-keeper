@@ -5,6 +5,7 @@ import { useStudentsStore } from '@/stores/students'
 import { useSubjectsStore } from '@/stores/subjects'
 import { useLogsStore } from '@/stores/logs'
 import { useAuthStore } from '@/stores/auth'
+import { telemetry, TelemetryEvents } from '@/api/telemetry'
 
 const router = useRouter()
 const studentsStore = useStudentsStore()
@@ -98,6 +99,9 @@ async function handleSubmit(addAnother = false) {
       date: date.value,
       locationType: location.value === 'home' ? 'home' : 'other'
     })
+
+    // Track log creation
+    telemetry.trackEvent(TelemetryEvents.LOG_CREATED, { count: result.length })
 
     if (addAnother) {
       // Reset form but keep students/date for convenience

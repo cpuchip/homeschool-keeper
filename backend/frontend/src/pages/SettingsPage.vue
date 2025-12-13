@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLocationsStore } from '@/stores/locations'
 import { BaseModal } from '@/components/common'
+import { telemetry } from '@/api/telemetry'
 import type { Location } from '@/types'
 
 const authStore = useAuthStore()
@@ -17,6 +18,9 @@ const timezone = ref('America/Chicago')
 // User settings
 const userName = ref('')
 const userEmail = ref('')
+
+// Telemetry settings
+const telemetryEnabled = ref(true)
 
 // Password change
 const showPasswordModal = ref(false)
@@ -212,9 +216,17 @@ onMounted(() => {
     timezone.value = family.value.timezone ?? 'America/Chicago'
   }
 
+  // Load telemetry preference
+  telemetryEnabled.value = telemetry.isEnabled
+
   // Load saved locations
   locationsStore.fetchLocations()
 })
+
+function toggleTelemetry() {
+  telemetryEnabled.value = !telemetryEnabled.value
+  telemetry.setEnabled(telemetryEnabled.value)
+}
 </script>
 
 <template>
@@ -431,6 +443,34 @@ onMounted(() => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </router-link>
+      </div>
+    </div>
+
+    <!-- Privacy & Analytics -->
+    <div class="card">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Privacy & Analytics</h2>
+      <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div>
+          <h3 class="font-medium text-gray-900">Share Anonymous Usage Data</h3>
+          <p class="text-sm text-gray-500">
+            Help improve the app by sharing anonymous usage statistics.
+            We never collect personal information about you or your students.
+          </p>
+        </div>
+        <button
+          @click="toggleTelemetry"
+          :class="[
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+            telemetryEnabled ? 'bg-primary-600' : 'bg-gray-200'
+          ]"
+        >
+          <span
+            :class="[
+              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+              telemetryEnabled ? 'translate-x-5' : 'translate-x-0'
+            ]"
+          ></span>
+        </button>
       </div>
     </div>
 

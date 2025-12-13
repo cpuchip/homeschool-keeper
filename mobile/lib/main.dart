@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/database/database_service.dart';
 import 'core/router.dart';
+import 'core/telemetry_service.dart';
 import 'core/theme.dart';
 import 'core/sync/connectivity_service.dart';
 import 'features/export/failsafe_backup_service.dart';
@@ -23,6 +24,9 @@ void main() async {
   // Initialize work sample repository
   final workSampleRepo = WorkSampleRepository();
   await workSampleRepo.init();
+  
+  // Initialize telemetry (anonymous usage tracking)
+  await TelemetryService.instance.init();
   
   // Initialize connectivity monitoring
   await ConnectivityService.instance.init();

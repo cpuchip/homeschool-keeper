@@ -23,6 +23,7 @@ type AdminHandler struct {
 	students    *repository.StudentRepository
 	logs        *repository.LogRepository
 	workSamples *repository.WorkSampleRepository
+	telemetry   *repository.TelemetryRepository
 	r2          *storage.R2Client
 }
 
@@ -34,6 +35,7 @@ func NewAdminHandler(
 	students *repository.StudentRepository,
 	logs *repository.LogRepository,
 	workSamples *repository.WorkSampleRepository,
+	telemetry *repository.TelemetryRepository,
 	r2 *storage.R2Client,
 ) *AdminHandler {
 	return &AdminHandler{
@@ -43,6 +45,7 @@ func NewAdminHandler(
 		students:    students,
 		logs:        logs,
 		workSamples: workSamples,
+		telemetry:   telemetry,
 		r2:          r2,
 	}
 }
@@ -504,6 +507,48 @@ func (h *AdminHandler) GetStorageStats(w http.ResponseWriter, r *http.Request) {
 	JSON(w, http.StatusOK, summaries)
 }
 
+// GetTelemetryStats handles GET /api/v1/admin/telemetry
+func (h *AdminHandler) GetTelemetryStats(w http.ResponseWriter, r *http.Request) {
+	if !h.requireSuperAdmin(w, r) {
+		return
+	}
+
+	if h.telemetry == nil {
+		Error(w, http.StatusServiceUnavailable, "Telemetry not configured")
+		return
+	}
+
+	ctx := r.Context()
+	stats, err := h.telemetry.GetStats(ctx)
+	if err != nil {
+		InternalError(w)
+		return
+	}
+
+	JSON(w, http.StatusOK, stats)
+}
+
+// GetTelemetryDAU handles GET /api/v1/admin/telemetry/dau
+func (h *AdminHandler) GetTelemetryDAU(w http.ResponseWriter, r *http.Request) {
+	if !h.requireSuperAdmin(w, r) {
+		return
+	}
+
+	if h.telemetry == nil {
+		Error(w, http.StatusServiceUnavailable, "Telemetry not configured")
+		return
+	}
+
+	ctx := r.Context()
+	dau, err := h.telemetry.GetDailyActiveUsers(ctx, 30)
+	if err != nil {
+		InternalError(w)
+		return
+	}
+
+	JSON(w, http.StatusOK, dau)
+}
+
 // RegisterAdminRoutes registers admin routes
 func RegisterAdminRoutes(r *mux.Router, h *AdminHandler) {
 	// All admin routes require authentication (checked in handlers)
@@ -516,4 +561,6 @@ func RegisterAdminRoutes(r *mux.Router, h *AdminHandler) {
 	admin.HandleFunc("/orgs", h.ListOrganizations).Methods("GET")
 	admin.HandleFunc("/orgs/{id}", h.GetOrganization).Methods("GET")
 	admin.HandleFunc("/storage", h.GetStorageStats).Methods("GET")
+	admin.HandleFunc("/telemetry", h.GetTelemetryStats).Methods("GET")
+	admin.HandleFunc("/telemetry/dau", h.GetTelemetryDAU).Methods("GET")
 }

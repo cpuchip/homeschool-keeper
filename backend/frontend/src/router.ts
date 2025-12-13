@@ -112,6 +112,11 @@ const router = createRouter({
           path: 'storage',
           name: 'admin-storage',
           component: () => import('@/pages/admin/AdminStorage.vue')
+        },
+        {
+          path: 'telemetry',
+          name: 'admin-telemetry',
+          component: () => import('@/pages/admin/AdminTelemetry.vue')
         }
       ]
     },
