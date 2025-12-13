@@ -4,8 +4,8 @@
 **Domain**: hmslogs.com  
 **Database**: hmslogs (MongoDB)  
 **Generated**: December 6, 2025  
-**Last Updated**: December 8, 2025  
-**Status**: Phase 1A Complete → Phase 1B Mobile  
+**Last Updated**: December 13, 2025  
+**Status**: Phase 1B Complete → Phase 2 (Beta Testing)  
 **Reference Project**: [ForKirk](C:\Users\cpuch\Documents\code\stuffleberry\forkirk)
 
 ---
@@ -669,24 +669,54 @@ FERPA applies to **educational agencies receiving federal funds**:
 - [ ] Optional cloud sync (when user creates account)
 - [ ] Sync status indicator in UI
 
-### Web Polish
-- [ ] Location management CRUD
-- [ ] Multi-year switching
-- [ ] Archive school year
-- [ ] Proper family/org separation (if needed for co-op)
+### Web Polish ✅ COMPLETE
+- [x] Location management CRUD *(Completed Dec 10, 2025)*
+- [x] Multi-year switching *(Completed Dec 10, 2025)*
+- [x] Archive school year - warning banner for past years *(Completed Dec 10, 2025)*
+- [x] Trash/Recycle bin view *(Completed Dec 11, 2025)*
+- [x] PDF/CSV export *(Completed Dec 11, 2025)*
+
+### Multi-Student Logs ✅ COMPLETE (Dec 11, 2025)
+- [x] Added `groupId` field to LogEntry model (backend + mobile + web)
+- [x] QuickLogScreen/QuickLogPage with multi-student chip selection
+- [x] Creates N log entries with shared groupId
+- [x] Grouped log display (Mobile: _GroupedLogCard, Web: GroupedLogRow)
+
+### Work Samples / File Attachments ✅ COMPLETE (Dec 12, 2025)
+- [x] R2 storage integration for file uploads
+- [x] Backend: WorkSampleHandler with upload/download/delete
+- [x] Mobile: Work sample UI with image picker and gallery
+- [x] Web: Work sample upload in log detail
+- [x] Premium gating (requires subscription)
+
+### Super Admin Portal ✅ COMPLETE (Dec 12, 2025)
+- [x] Admin dashboard with overview stats
+- [x] Family management (list, search, view details)
+- [x] Organization management
+- [x] Storage/database stats
+- [x] Routes protected by isSuperAdmin check
+
+### Anonymous Telemetry ✅ COMPLETE (Dec 12, 2025)
+- [x] Backend: TelemetryEvent model, repository, handlers
+- [x] Mobile: TelemetryService (Hive-based, Dio HTTP, 30s flush)
+- [x] Web: TelemetryService (localStorage, batch sending)
+- [x] Settings toggle for opt-out
+- [x] Admin telemetry dashboard (/admin/telemetry)
+- [x] Rate limiting (500 events/install/day)
+- [x] Tier 1 & 2 events (install, session, feature usage)
+- See docs/17-telemetry-analytics.md for full spec
 
 ---
 
 ## Phase 2: Advanced Features (Future)
 
-- Google OAuth
-- File attachments (work samples)
-- PDF/Excel export
-- Multi-state compliance rules
-- Student accounts (COPPA compliance)
-- Approval workflow
-- Email notifications
-- Full offline mobile sync
+- [ ] Google OAuth
+- [ ] Multi-state compliance rules
+- [ ] Student accounts (COPPA compliance)
+- [ ] Approval workflow
+- [ ] Email notifications
+- [ ] Todo/Lesson Planning (see docs/18-todo-planning.md)
+- [ ] Subscription/Payment system (see docs/16-payments-research.md)
 
 ---
 
