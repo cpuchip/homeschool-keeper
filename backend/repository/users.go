@@ -115,6 +115,11 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, id primitive.Objec
 	return r.Update(ctx, id, bson.M{"lastLoginAt": now})
 }
 
+// UpdateGoogleID updates the Google ID for a user (for linking Google OAuth)
+func (r *UserRepository) UpdateGoogleID(ctx context.Context, id primitive.ObjectID, googleID string) error {
+	return r.Update(ctx, id, bson.M{"googleId": googleID})
+}
+
 // SoftDelete deactivates a user (soft delete)
 func (r *UserRepository) SoftDelete(ctx context.Context, id primitive.ObjectID) error {
 	return r.Update(ctx, id, bson.M{"active": false})

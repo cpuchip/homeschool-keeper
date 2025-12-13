@@ -108,6 +108,9 @@ class _StubAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier
   Future<void> register({required String email, required String password, required String familyName, String role = 'parent'}) async {}
   
   @override
+  Future<void> loginWithGoogle({required String idToken, String? familyName, String? usState}) async {}
+  
+  @override
   Future<void> logout() async {}
   
   @override

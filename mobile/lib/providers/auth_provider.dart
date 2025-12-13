@@ -176,6 +176,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Login with Google ID token
+  Future<void> loginWithGoogle({
+    required String idToken,
+    String? familyName,
+    String? usState,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _authService.loginWithGoogle(
+        idToken: idToken,
+        familyName: familyName,
+        state: usState,
+      );
+      state = AuthState.authenticated(response.user);
+      // Update backup service with user info
+      FailsafeBackupService.instance.setCurrentUser(email: response.user.email);
+    } on AuthException catch (e) {
+      state = AuthState.error(e.message);
+      rethrow;
+    } catch (e) {
+      state = AuthState.error('Google sign-in failed: $e');
+      rethrow;
+    }
+  }
+
   /// Logout
   Future<void> logout() async {
     await _authService.logout();

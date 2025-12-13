@@ -1,4 +1,4 @@
-import api from './client'
+import api, { setAccessToken, clearAccessToken } from './client'
 import type { AuthResponse, User, Family } from '@/types'
 
 export interface RegisterRequest {
@@ -11,6 +11,20 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string
   password: string
+}
+
+export interface GoogleAuthRequest {
+  idToken: string
+  familyName?: string
+  state?: string
+}
+
+export interface GoogleAuthResponse {
+  user: User
+  family: Family
+  accessToken: string
+  expiresAt: string
+  isNewUser: boolean
 }
 
 export const authApi = {
@@ -33,9 +47,25 @@ export const authApi = {
   },
 
   /**
+   * Login or register with Google OAuth
+   * Returns JWT token for subsequent requests
+   */
+  async googleAuth(data: GoogleAuthRequest): Promise<GoogleAuthResponse> {
+    const response = await api.post('/v1/auth/google', data)
+    // Store the JWT token for future requests
+    if (response.data.accessToken) {
+      setAccessToken(response.data.accessToken)
+    }
+    return response.data
+  },
+
+  /**
    * Logout and clear session
    */
   async logout(): Promise<void> {
+    // Clear JWT token
+    clearAccessToken()
+    // Also clear server-side session
     await api.post('/v1/auth/logout')
   },
 

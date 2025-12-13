@@ -14,16 +14,20 @@ type Config struct {
 	DBName   string
 	DevMode  bool
 
-	// Session settings (web auth)
+	// Session settings (web auth - legacy, keeping for compatibility)
 	SessionSecret string
 
 	// Encryption settings
 	EncryptionMasterKey string
 
-	// JWT settings (mobile auth)
+	// JWT settings (unified auth for web + mobile)
 	JWTSecret        string
 	JWTAccessExpiry  string
 	JWTRefreshExpiry string
+
+	// Google OAuth settings
+	GoogleClientID     string
+	GoogleClientSecret string
 
 	// R2 Storage settings
 	R2AccountID         string
@@ -51,6 +55,9 @@ func Load() *Config {
 		JWTSecret:           getEnv("JWT_SECRET", ""),
 		JWTAccessExpiry:     getEnv("JWT_ACCESS_EXPIRY", "15m"),
 		JWTRefreshExpiry:    getEnv("JWT_REFRESH_EXPIRY", "168h"),
+		// Google OAuth
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		// R2 Storage
 		R2AccountID:         getEnv("R2_ACCOUNT_ID", ""),
 		R2AccessKeyID:       getEnv("R2_ACCESS_KEY_ID", ""),
@@ -77,6 +84,11 @@ func Load() *Config {
 	fmt.Printf("  SESSION_SECRET: %s\n", maskSecret(cfg.SessionSecret))
 	fmt.Printf("  ENCRYPTION_MASTER_KEY: %s\n", maskSecret(cfg.EncryptionMasterKey))
 	fmt.Printf("  JWT_SECRET: %s\n", maskSecret(cfg.JWTSecret))
+	if cfg.GoogleConfigured() {
+		fmt.Println("  GOOGLE_OAUTH: configured ✓")
+	} else {
+		fmt.Println("  GOOGLE_OAUTH: (not configured)")
+	}
 	if cfg.R2Configured() {
 		fmt.Printf("  R2_BUCKET_NAME: %s\n", cfg.R2BucketName)
 		fmt.Printf("  R2_ACCOUNT_ID: %s\n", maskSecret(cfg.R2AccountID))
@@ -177,4 +189,9 @@ func maskSecret(secret string) string {
 // R2Configured returns true if R2 storage is configured
 func (c *Config) R2Configured() bool {
 	return c.R2AccountID != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != ""
+}
+
+// GoogleConfigured returns true if Google OAuth is configured
+func (c *Config) GoogleConfigured() bool {
+	return c.GoogleClientID != "" && c.GoogleClientSecret != ""
 }

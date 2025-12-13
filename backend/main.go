@@ -149,6 +149,7 @@ func main() {
 
 		// Initialize handlers
 		authHandler := handlers.NewAuthHandler(repo.Users, repo.Families, repo.Subjects)
+		oauthHandler := handlers.NewOAuthHandler(repo.Users, repo.Families, repo.Subjects, jwtManager, cfg)
 		studentHandler := handlers.NewStudentHandler(repo.Students, repo.Logs)
 		subjectHandler := handlers.NewSubjectHandler(repo.Subjects)
 		logHandler := handlers.NewLogHandler(repo.Logs, repo.Students, repo.Subjects, repo.Families)
@@ -168,6 +169,7 @@ func main() {
 		api.HandleFunc("/v1/auth/register", authHandler.Register).Methods("POST")
 		api.HandleFunc("/v1/auth/login", authHandler.Login).Methods("POST")
 		api.HandleFunc("/v1/auth/logout", authHandler.Logout).Methods("POST")
+		api.HandleFunc("/v1/auth/google", oauthHandler.GoogleAuth).Methods("POST") // Google OAuth
 		api.HandleFunc("/v1/auth/me", requireAuth(authHandler.Me)).Methods("GET")
 
 		// Onboarding routes (authentication required)

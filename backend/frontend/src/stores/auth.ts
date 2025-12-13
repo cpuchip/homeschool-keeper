@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, Family } from '@/types'
-import { authApi, type RegisterRequest } from '@/api/auth'
+import { authApi, type RegisterRequest, type GoogleAuthRequest } from '@/api/auth'
+import { clearAccessToken } from '@/api/client'
 import { telemetry, TelemetryEvents } from '@/api/telemetry'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -90,6 +91,33 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function loginWithGoogle(idToken: string, familyName?: string, state?: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const request: GoogleAuthRequest = { idToken }
+      if (familyName) request.familyName = familyName
+      if (state) request.state = state
+      
+      const response = await authApi.googleAuth(request)
+      user.value = response.user
+      family.value = response.family
+      
+      // Track events
+      if (response.isNewUser) {
+        telemetry.trackEvent(TelemetryEvents.ACCOUNT_CREATED, { method: 'google' })
+      }
+      
+      return response
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string }
+      error.value = err.response?.data?.error || err.message || 'Google login failed'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function logout() {
     try {
       await authApi.logout()
@@ -98,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       user.value = null
       family.value = null
+      clearAccessToken()
     }
   }
 
@@ -143,6 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
     isViewingPastYear,
     // Actions
     login,
+    loginWithGoogle,
     register,
     logout,
     fetchUser,

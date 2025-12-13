@@ -87,6 +87,45 @@ class AuthService {
     }
   }
 
+  /// Login with Google ID token
+  /// If the user doesn't exist, creates a new account
+  Future<AuthResponse> loginWithGoogle({
+    required String idToken,
+    String? familyName,
+    String? state,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.googleAuth,
+        data: {
+          'idToken': idToken,
+          if (familyName != null) 'familyName': familyName,
+          if (state != null) 'state': state,
+        },
+      );
+
+      final authResponse = AuthResponse.fromJson(response.data);
+
+      // Save tokens
+      await _tokenStorage.saveTokens(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+        expiresAt: authResponse.expiresAt,
+      );
+
+      // Save user info
+      await _tokenStorage.saveUserInfo(
+        userId: authResponse.user.id,
+        email: authResponse.user.email,
+        familyId: authResponse.user.familyId,
+      );
+
+      return authResponse;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   /// Refresh the access token
   Future<void> refreshToken() async {
     final refreshToken = await _tokenStorage.getRefreshToken();

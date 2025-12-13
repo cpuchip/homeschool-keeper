@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import GoogleSignInButton from '@/components/GoogleSignInButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -45,6 +46,26 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+async function handleGoogleSuccess(idToken: string) {
+  error.value = ''
+  loading.value = true
+
+  try {
+    await authStore.loginWithGoogle(idToken, familyName.value)
+    // New users from Google always need onboarding
+    router.push('/onboarding')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } } }
+    error.value = err.response?.data?.error || 'Google sign-up failed'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleGoogleError(errorMessage: string) {
+  error.value = errorMessage
+}
 </script>
 
 <template>
@@ -60,11 +81,30 @@ async function handleSubmit() {
         </p>
       </div>
 
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
-        <div v-if="error" class="rounded-md bg-red-50 p-4">
-          <p class="text-sm text-red-700">{{ error }}</p>
-        </div>
+      <div v-if="error" class="rounded-md bg-red-50 p-4">
+        <p class="text-sm text-red-700">{{ error }}</p>
+      </div>
 
+      <!-- Google Sign-In -->
+      <div class="mt-6">
+        <GoogleSignInButton
+          :disabled="loading"
+          @success="handleGoogleSuccess"
+          @error="handleGoogleError"
+        />
+      </div>
+
+      <!-- Divider -->
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300" />
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-gray-50 text-gray-500">Or register with email</span>
+        </div>
+      </div>
+
+      <form class="space-y-6" @submit.prevent="handleSubmit">
         <div class="space-y-4">
           <div>
             <label for="name" class="label">Your Name</label>

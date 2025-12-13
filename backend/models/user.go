@@ -16,6 +16,7 @@ type User struct {
 	FamilyID     primitive.ObjectID `bson:"familyId" json:"familyId"`
 	Role         string             `bson:"role" json:"role"` // admin, parent, student
 	Active       bool               `bson:"active" json:"active"`
+	GoogleID     string             `bson:"googleId,omitempty" json:"-"` // Google user ID for OAuth
 	LastLoginAt  *time.Time         `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
 	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt    time.Time          `bson:"updatedAt" json:"updatedAt"`

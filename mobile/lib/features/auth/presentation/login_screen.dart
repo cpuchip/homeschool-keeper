@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/sync_provider.dart';
 import '../../sync/presentation/conflict_resolution_screen.dart';
+import 'widgets/google_sign_in_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -71,6 +72,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Login failed: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn(String idToken) async {
+    setState(() => _isLoading = true);
+
+    try {
+      await ref.read(authStateProvider.notifier).loginWithGoogle(
+            idToken: idToken,
+          );
+
+      if (mounted) {
+        // Check if user needs onboarding
+        final authState = ref.read(authStateProvider);
+        if (authState.onboardingComplete) {
+          // Perform full sync after login
+          final syncResult = await ref.read(syncProvider.notifier).performFullSync(incremental: false);
+          
+          // Check for conflicts and show resolution dialog if needed
+          if (mounted && syncResult.hasConflicts) {
+            final resolutions = await Navigator.of(context).push<List<ResolvedConflict>>(
+              MaterialPageRoute(
+                builder: (context) => ConflictResolutionScreen(
+                  conflicts: syncResult.conflictItems,
+                ),
+              ),
+            );
+            
+            // Apply resolutions if user didn't cancel
+            if (resolutions != null && mounted) {
+              await ref.read(syncProvider.notifier).applyConflictResolutions(resolutions);
+            }
+          }
+          
+          if (mounted) context.go('/dashboard');
+        } else {
+          context.go('/onboarding');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google sign-in failed: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -191,6 +244,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Divider with "or"
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'or',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Google Sign-In button
+                      GoogleSignInButton(
+                        isLoading: _isLoading,
+                        onSuccess: (result) => _handleGoogleSignIn(result.idToken),
+                        onError: (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error),
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
                       // Register link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -212,7 +303,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'or',
+                              'offline mode',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
