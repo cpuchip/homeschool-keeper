@@ -93,7 +93,7 @@ function formatDate(dateStr: string): string {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Log Entries</p>
-              <p class="text-3xl font-bold text-gray-900">{{ stats.totalLogs.toLocaleString() }}</p>
+              <p class="text-3xl font-bold text-gray-900">{{ (stats.totalLogs ?? 0).toLocaleString() }}</p>
             </div>
             <div class="text-4xl">📝</div>
           </div>
@@ -129,7 +129,7 @@ function formatDate(dateStr: string): string {
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <span class="text-gray-600">Total Work Samples</span>
-              <span class="text-xl font-semibold text-emerald-600">{{ stats.totalWorkSamples.toLocaleString() }}</span>
+              <span class="text-xl font-semibold text-emerald-600">{{ (stats.totalWorkSamples ?? 0).toLocaleString() }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-gray-600">Total Storage Used</span>

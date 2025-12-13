@@ -106,42 +106,42 @@ export interface UpdatePremiumRequest {
 
 // Get dashboard stats
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const response = await client.get('/api/v1/admin/stats')
+  const response = await client.get('/v1/admin/stats')
   return response.data
 }
 
 // Get all families
 export async function getFamilies(): Promise<FamilySummary[]> {
-  const response = await client.get('/api/v1/admin/families')
+  const response = await client.get('/v1/admin/families')
   return response.data
 }
 
 // Get family detail
 export async function getFamily(id: string): Promise<FamilyDetail> {
-  const response = await client.get(`/api/v1/admin/families/${id}`)
+  const response = await client.get(`/v1/admin/families/${id}`)
   return response.data
 }
 
 // Update family premium settings
 export async function updateFamilyPremium(id: string, settings: UpdatePremiumRequest): Promise<void> {
-  await client.patch(`/api/v1/admin/families/${id}/premium`, settings)
+  await client.patch(`/v1/admin/families/${id}/premium`, settings)
 }
 
 // Get all organizations
 export async function getOrganizations(): Promise<OrgSummary[]> {
-  const response = await client.get('/api/v1/admin/orgs')
+  const response = await client.get('/v1/admin/orgs')
   return response.data
 }
 
 // Get organization detail
 export async function getOrganization(id: string): Promise<OrgDetail> {
-  const response = await client.get(`/api/v1/admin/orgs/${id}`)
+  const response = await client.get(`/v1/admin/orgs/${id}`)
   return response.data
 }
 
 // Get storage stats
 export async function getStorageStats(): Promise<StorageSummary[]> {
-  const response = await client.get('/api/v1/admin/storage')
+  const response = await client.get('/v1/admin/storage')
   return response.data
 }
 
@@ -164,12 +164,12 @@ export interface DailyCount {
 
 // Get telemetry stats
 export async function getTelemetryStats(): Promise<TelemetryStats> {
-  const response = await client.get('/api/v1/admin/telemetry')
+  const response = await client.get('/v1/admin/telemetry')
   return response.data
 }
 
 // Get daily active users
 export async function getTelemetryDAU(): Promise<DailyCount[]> {
-  const response = await client.get('/api/v1/admin/telemetry/dau')
+  const response = await client.get('/v1/admin/telemetry/dau')
   return response.data
 }

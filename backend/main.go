@@ -257,7 +257,7 @@ func main() {
 			telemetryRepo,
 			r2Client,
 		)
-		handlers.RegisterAdminRoutes(r, adminHandler)
+		handlers.RegisterAdminRoutes(r, adminHandler, requireAuth)
 	}
 
 	// Serve SPA frontend

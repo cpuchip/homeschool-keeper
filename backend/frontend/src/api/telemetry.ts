@@ -142,7 +142,7 @@ class TelemetryService {
     this.pendingEvents = []
 
     try {
-      await client.post('/api/v1/telemetry/batch', { events })
+      await client.post('/v1/telemetry/batch', { events })
       this.clearPendingEvents()
     } catch (e) {
       // Failed - save for later

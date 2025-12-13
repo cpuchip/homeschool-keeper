@@ -15,6 +15,7 @@ type User struct {
 	Name         string             `bson:"name" json:"name"`
 	FamilyID     primitive.ObjectID `bson:"familyId" json:"familyId"`
 	Role         string             `bson:"role" json:"role"` // admin, parent, student
+	IsSuperAdmin bool               `bson:"isSuperAdmin" json:"isSuperAdmin"`
 	Active       bool               `bson:"active" json:"active"`
 	GoogleID     string             `bson:"googleId,omitempty" json:"-"` // Google user ID for OAuth
 	LastLoginAt  *time.Time         `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
@@ -31,24 +32,26 @@ const (
 
 // UserResponse is the user data returned to clients (excludes sensitive fields)
 type UserResponse struct {
-	ID          primitive.ObjectID `json:"id"`
-	Email       string             `json:"email"`
-	Name        string             `json:"name"`
-	FamilyID    primitive.ObjectID `json:"familyId"`
-	Role        string             `json:"role"`
-	LastLoginAt *time.Time         `json:"lastLoginAt,omitempty"`
-	CreatedAt   time.Time          `json:"createdAt"`
+	ID           primitive.ObjectID `json:"id"`
+	Email        string             `json:"email"`
+	Name         string             `json:"name"`
+	FamilyID     primitive.ObjectID `json:"familyId"`
+	Role         string             `json:"role"`
+	IsSuperAdmin bool               `json:"isSuperAdmin"`
+	LastLoginAt  *time.Time         `json:"lastLoginAt,omitempty"`
+	CreatedAt    time.Time          `json:"createdAt"`
 }
 
 // ToResponse converts a User to a UserResponse (for API output)
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
-		ID:          u.ID,
-		Email:       u.Email,
-		Name:        u.Name,
-		FamilyID:    u.FamilyID,
-		Role:        u.Role,
-		LastLoginAt: u.LastLoginAt,
-		CreatedAt:   u.CreatedAt,
+		ID:           u.ID,
+		Email:        u.Email,
+		Name:         u.Name,
+		FamilyID:     u.FamilyID,
+		Role:         u.Role,
+		IsSuperAdmin: u.IsSuperAdmin,
+		LastLoginAt:  u.LastLoginAt,
+		CreatedAt:    u.CreatedAt,
 	}
 }

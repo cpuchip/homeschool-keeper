@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const isSuperAdmin = computed(() => authStore.user?.email === 'cpuchip@gmail.com')
+const isSuperAdmin = computed(() => authStore.user?.isSuperAdmin === true)
 
 async function handleLogout() {
   await authStore.logout()

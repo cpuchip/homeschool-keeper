@@ -5,6 +5,7 @@ export interface User {
   name: string
   familyId: string
   role: 'admin' | 'parent' | 'student'
+  isSuperAdmin: boolean
   createdAt: string
   updatedAt: string
 }

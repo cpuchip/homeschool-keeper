@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -11,9 +12,6 @@ import (
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-// SuperAdminEmail is the only email allowed to access super admin features
-const SuperAdminEmail = "cpuchip@gmail.com"
 
 // AdminHandler handles super admin API endpoints
 type AdminHandler struct {
@@ -50,24 +48,32 @@ func NewAdminHandler(
 	}
 }
 
-// isSuperAdmin checks if the current user is the super admin
+// isSuperAdmin checks if the current user is a super admin (from database)
 func (h *AdminHandler) isSuperAdmin(r *http.Request) bool {
 	session := auth.GetUserFromContext(r.Context())
 	if session == nil {
+		log.Printf("[ADMIN] isSuperAdmin: no session found")
 		return false
 	}
 
+	log.Printf("[ADMIN] isSuperAdmin: checking user ID %s", session.UserID)
+
 	userID, err := primitive.ObjectIDFromHex(session.UserID)
 	if err != nil {
+		log.Printf("[ADMIN] isSuperAdmin: invalid user ID: %v", err)
 		return false
 	}
 
 	user, err := h.users.GetByID(r.Context(), userID)
 	if err != nil {
+		log.Printf("[ADMIN] isSuperAdmin: failed to get user: %v", err)
 		return false
 	}
 
-	return user.Email == SuperAdminEmail
+	log.Printf("[ADMIN] isSuperAdmin: user %s, isSuperAdmin=%v", user.Email, user.IsSuperAdmin)
+
+	// Check the isSuperAdmin field from the database
+	return user.IsSuperAdmin
 }
 
 // requireSuperAdmin is a helper that returns 403 if not super admin
@@ -550,17 +556,17 @@ func (h *AdminHandler) GetTelemetryDAU(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterAdminRoutes registers admin routes
-func RegisterAdminRoutes(r *mux.Router, h *AdminHandler) {
-	// All admin routes require authentication (checked in handlers)
+func RegisterAdminRoutes(r *mux.Router, h *AdminHandler, requireAuth func(http.HandlerFunc) http.HandlerFunc) {
+	// All admin routes require authentication
 	admin := r.PathPrefix("/api/v1/admin").Subrouter()
 
-	admin.HandleFunc("/stats", h.GetDashboardStats).Methods("GET")
-	admin.HandleFunc("/families", h.ListFamilies).Methods("GET")
-	admin.HandleFunc("/families/{id}", h.GetFamily).Methods("GET")
-	admin.HandleFunc("/families/{id}/premium", h.UpdateFamilyPremium).Methods("PATCH")
-	admin.HandleFunc("/orgs", h.ListOrganizations).Methods("GET")
-	admin.HandleFunc("/orgs/{id}", h.GetOrganization).Methods("GET")
-	admin.HandleFunc("/storage", h.GetStorageStats).Methods("GET")
-	admin.HandleFunc("/telemetry", h.GetTelemetryStats).Methods("GET")
-	admin.HandleFunc("/telemetry/dau", h.GetTelemetryDAU).Methods("GET")
+	admin.HandleFunc("/stats", requireAuth(h.GetDashboardStats)).Methods("GET")
+	admin.HandleFunc("/families", requireAuth(h.ListFamilies)).Methods("GET")
+	admin.HandleFunc("/families/{id}", requireAuth(h.GetFamily)).Methods("GET")
+	admin.HandleFunc("/families/{id}/premium", requireAuth(h.UpdateFamilyPremium)).Methods("PATCH")
+	admin.HandleFunc("/orgs", requireAuth(h.ListOrganizations)).Methods("GET")
+	admin.HandleFunc("/orgs/{id}", requireAuth(h.GetOrganization)).Methods("GET")
+	admin.HandleFunc("/storage", requireAuth(h.GetStorageStats)).Methods("GET")
+	admin.HandleFunc("/telemetry", requireAuth(h.GetTelemetryStats)).Methods("GET")
+	admin.HandleFunc("/telemetry/dau", requireAuth(h.GetTelemetryDAU)).Methods("GET")
 }

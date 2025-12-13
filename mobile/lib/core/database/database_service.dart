@@ -2,6 +2,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'hive_entities.dart';
+import 'custom_adapters.dart';
 
 /// Database service for initializing and managing Hive boxes
 class DatabaseService {
@@ -43,6 +44,9 @@ class DatabaseService {
   }
 
   void _registerAdapters() {
+    // Only override adapters that have had schema changes.
+    // For everything else, keep the generated adapters to avoid mismatches with
+    // existing on-disk data.
     if (!Hive.isAdapterRegistered(HiveTypeIds.student)) {
       Hive.registerAdapter(StudentEntityAdapter());
     }
@@ -53,7 +57,7 @@ class DatabaseService {
       Hive.registerAdapter(LogEntryEntityAdapter());
     }
     if (!Hive.isAdapterRegistered(HiveTypeIds.familySettings)) {
-      Hive.registerAdapter(FamilySettingsEntityAdapter());
+      Hive.registerAdapter(MigrationSafeFamilySettingsAdapter());
     }
     if (!Hive.isAdapterRegistered(HiveTypeIds.syncMeta)) {
       Hive.registerAdapter(SyncMetaEntityAdapter());

@@ -7,14 +7,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 const activeTab = ref('dashboard')
 
-// Check if user is super admin
+// Check if user is super admin (from database)
 const isSuperAdmin = computed(() => {
-  return authStore.user?.email === 'cpuchip@gmail.com'
+  return authStore.user?.isSuperAdmin === true
 })
 
 onMounted(() => {
   if (!isSuperAdmin.value) {
-    router.push('/dashboard')
+    router.push('/')
   }
 })
 
@@ -53,7 +53,7 @@ onMounted(() => {
           </div>
           <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm">{{ authStore.user?.email }}</span>
-            <router-link to="/dashboard" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
+            <router-link to="/" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
               ← Back to App
             </router-link>
           </div>
@@ -93,7 +93,7 @@ onMounted(() => {
     <div class="text-center">
       <h1 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
       <p class="text-gray-600 mb-4">You don't have permission to access this area.</p>
-      <router-link to="/dashboard" class="text-indigo-600 hover:text-indigo-800">
+      <router-link to="/" class="text-indigo-600 hover:text-indigo-800">
         ← Return to Dashboard
       </router-link>
     </div>
