@@ -15,8 +15,8 @@
 ### Authentication
 | Decision | Value |
 |----------|-------|
-| Web Auth | Email/Password with cookie sessions (Google OAuth Phase 2) |
-| Mobile Auth | JWT tokens (standard approach) |
+| Web Auth | Email/Password with cookie sessions + Google OAuth (JWT) ✅ |
+| Mobile Auth | JWT tokens (standard approach) + Google OAuth (pending platform setup) |
 | Session Duration | 30 days |
 | Signup Model | **Adults-only signup** - parents create student accounts from within family portal |
 | COPPA | **Not triggered** - parents enter all student data, not children (see COPPA section below) |
@@ -710,7 +710,12 @@ FERPA applies to **educational agencies receiving federal funds**:
 
 ## Phase 2: Advanced Features (Future)
 
-- [ ] Google OAuth
+- [x] Google OAuth (Web) - ✅ Dec 13, 2025
+- [ ] Google OAuth (Mobile) - Needs platform-specific OAuth credentials:
+  - **Android**: Requires SHA-1 fingerprint from release keystore (get after app signing setup)
+  - **iOS**: Requires iOS Client ID from Google Cloud Console + URL schemes in Info.plist
+  - **Desktop (Windows/macOS/Linux)**: May need separate Desktop OAuth client or use web flow
+  - Note: Web Client ID works for ID token verification, but native sign-in SDKs need platform-specific setup
 - [ ] Multi-state compliance rules
 - [ ] Student accounts (COPPA compliance)
 - [ ] Approval workflow

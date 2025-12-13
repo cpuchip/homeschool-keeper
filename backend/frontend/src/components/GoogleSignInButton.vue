@@ -18,8 +18,9 @@ const emit = defineEmits<{
   (e: 'error', error: string): void
 }>()
 
-// Google Client ID from environment
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+// Google Client ID - public value, safe to hardcode as default
+// Can be overridden via VITE_GOOGLE_CLIENT_ID env var if needed
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '729373409476-9dsn6nnpuruhqc5v7tbdurmfi9ss39dk.apps.googleusercontent.com'
 
 const buttonRef = ref<HTMLDivElement | null>(null)
 const scriptLoaded = ref(false)
