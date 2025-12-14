@@ -1,0 +1,355 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
+import '../../core/database/database_service.dart';
+import '../../core/utils/logger.dart';
+
+/// Dead man's switch - automatic failsafe backup service
+/// 
+/// This service periodically saves a backup to a user-accessible location
+/// on the device's file system. If the app crashes or becomes unresponsive,
+/// users can still recover their data from these backup files.
+class FailsafeBackupService {
+  static FailsafeBackupService? _instance;
+  static FailsafeBackupService get instance =>
+      _instance ??= FailsafeBackupService._();
+
+  FailsafeBackupService._();
+
+  Timer? _backupTimer;
+  bool _isRunning = false;
+  
+  /// Current user email for subfolder organization (null = offline mode)
+  String? _currentUserEmail;
+
+  /// Backup interval (default: every 15 minutes)
+  static const Duration backupInterval = Duration(minutes: 15);
+
+  /// Maximum number of backup files to keep per user
+  static const int maxBackupFiles = 5;
+
+  /// Set the current user for backup organization
+  void setCurrentUser({String? email}) {
+    _currentUserEmail = email;
+    Log.backup.d('User set to ${email ?? "offline"}');
+  }
+
+  /// Clear the current user (for logout)
+  void clearCurrentUser() {
+    _currentUserEmail = null;
+    Log.backup.d('User cleared (offline mode)');
+  }
+
+  /// Check if automatic backups are enabled
+  bool get isAutoBackupEnabled {
+    final db = DatabaseService.instance;
+    if (!db.isInitialized) return true; // Default to enabled
+    return db.familySettings.autoBackupEnabled;
+  }
+
+  /// Start the automatic backup timer
+  void start() {
+    if (_isRunning) return;
+    _isRunning = true;
+
+    // Perform immediate backup on start (if enabled)
+    if (isAutoBackupEnabled) {
+      _performBackup();
+    }
+
+    // Schedule periodic backups
+    _backupTimer = Timer.periodic(backupInterval, (_) {
+      if (isAutoBackupEnabled) {
+        _performBackup();
+      }
+    });
+
+    Log.backup.d('Started (interval: $backupInterval)');
+  }
+
+  /// Stop the automatic backup timer
+  void stop() {
+    _backupTimer?.cancel();
+    _backupTimer = null;
+    _isRunning = false;
+    Log.backup.d('Stopped');
+  }
+
+  /// Perform a backup now (can be called manually)
+  Future<String?> performBackupNow() async {
+    return await _performBackup();
+  }
+
+  /// Internal backup method
+  Future<String?> _performBackup() async {
+    try {
+      final db = DatabaseService.instance;
+      if (!db.isInitialized) {
+        Log.backup.d('Database not initialized, skipping');
+        return null;
+      }
+
+      // Gather all data
+      final data = _gatherBackupData(db);
+
+      // Get backup directory
+      final backupDir = await _getBackupDirectory();
+      if (backupDir == null) {
+        Log.backup.w('Could not get backup directory');
+        return null;
+      }
+
+      // Create backup file
+      final timestamp = DateFormat('yyyy-MM-dd_HHmmss').format(DateTime.now());
+      final fileName = 'failsafe_backup_$timestamp.json';
+      final filePath = '${backupDir.path}/$fileName';
+
+      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+      final file = File(filePath);
+      await file.writeAsString(jsonString);
+
+      Log.backup.d('Backup saved to $filePath');
+
+      // Cleanup old backups
+      await _cleanupOldBackups(backupDir);
+
+      return filePath;
+    } catch (e) {
+      Log.backup.e('Backup failed', e);
+      return null;
+    }
+  }
+
+  /// Gather all data for backup
+  Map<String, dynamic> _gatherBackupData(DatabaseService db) {
+    final students = db.studentsBox.values.map((s) => s.toJson()).toList();
+    final subjects = db.subjectsBox.values.map((s) => s.toJson()).toList();
+    final logs = db.logEntriesBox.values.map((l) => l.toJson()).toList();
+
+    final settings = {
+      'hourIncrement': db.familySettings.hourIncrement,
+      'currentSchoolYear': db.familySettings.currentSchoolYear,
+      'annualTargetHours': db.familySettings.annualTargetHours,
+      'state': db.familySettings.state,
+    };
+
+    return {
+      'backupVersion': 1,
+      'backupType': 'failsafe',
+      'backupedAt': DateTime.now().toIso8601String(),
+      'appVersion': '1.0.0',
+      'settings': settings,
+      'students': students,
+      'subjects': subjects,
+      'logs': logs,
+      'metadata': {
+        'studentCount': students.length,
+        'subjectCount': subjects.length,
+        'logCount': logs.length,
+      },
+    };
+  }
+
+  /// Get the external backup directory (accessible to users)
+  /// Organizes backups by user:
+  /// - /HomeSchoolLogs/backups/offline/ (no account)
+  /// - /HomeSchoolLogs/backups/user_<email_hash>/ (logged in)
+  Future<Directory?> _getBackupDirectory() async {
+    try {
+      // Try external storage first (more accessible to users)
+      String? basePath;
+
+      if (Platform.isAndroid) {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          // Navigate to a more accessible location
+          // From: /storage/emulated/0/Android/data/com.example.app/files
+          // To:   /storage/emulated/0/Documents/HomeSchoolLogs
+          basePath = externalDir.path.split('/Android/data').first;
+          basePath = '$basePath/Documents/HomeSchoolLogs/backups';
+        }
+      }
+
+      // Fallback to app documents directory
+      basePath ??= '${(await getApplicationDocumentsDirectory()).path}/HomeSchoolLogs/backups';
+
+      // Add user subfolder
+      final userFolder = _getUserFolderName();
+      final backupDir = Directory('$basePath/$userFolder');
+
+      if (!await backupDir.exists()) {
+        await backupDir.create(recursive: true);
+      }
+
+      return backupDir;
+    } catch (e) {
+      Log.backup.e('Error getting backup directory', e);
+      return null;
+    }
+  }
+
+  /// Get the folder name for the current user
+  String _getUserFolderName() {
+    if (_currentUserEmail == null) {
+      return 'offline';
+    }
+    // Use a simple hash of the email for folder name
+    final hash = _currentUserEmail.hashCode.abs().toRadixString(16);
+    return 'user_$hash';
+  }
+
+  /// Get the root backup directory (for browsing)
+  Future<Directory?> getBackupRootDirectory() async {
+    try {
+      String? basePath;
+
+      if (Platform.isAndroid) {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          basePath = externalDir.path.split('/Android/data').first;
+          basePath = '$basePath/Documents/HomeSchoolLogs';
+        }
+      }
+
+      basePath ??= '${(await getApplicationDocumentsDirectory()).path}/HomeSchoolLogs';
+
+      final dir = Directory(basePath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      return dir;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Open the file browser at the backup location
+  Future<bool> openBackupFolder() async {
+    try {
+      final backupDir = await _getBackupDirectory();
+      if (backupDir == null) return false;
+
+      // Try to open the folder
+      final result = await OpenFilex.open(backupDir.path);
+      return result.type == ResultType.done;
+    } catch (e) {
+      Log.backup.e('Error opening backup folder', e);
+      return false;
+    }
+  }
+
+  /// Get the backup directory path as a string (for display)
+  Future<String?> getBackupDirectoryPath() async {
+    final dir = await _getBackupDirectory();
+    return dir?.path;
+  }
+
+  /// Remove old backup files, keeping only the most recent ones
+  Future<void> _cleanupOldBackups(Directory backupDir) async {
+    try {
+      final files = backupDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.contains('failsafe_backup_'))
+          .toList();
+
+      if (files.length <= maxBackupFiles) return;
+
+      // Sort by modification time (oldest first)
+      files.sort(
+        (a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()),
+      );
+
+      // Delete oldest files
+      final filesToDelete = files.take(files.length - maxBackupFiles);
+      for (final file in filesToDelete) {
+        await file.delete();
+        Log.backup.d('Deleted old backup ${file.path}');
+      }
+    } catch (e) {
+      Log.backup.w('Cleanup error: $e');
+    }
+  }
+
+  /// Get the latest backup file path
+  Future<String?> getLatestBackupPath() async {
+    try {
+      final backupDir = await _getBackupDirectory();
+      if (backupDir == null) return null;
+
+      final files = backupDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.contains('failsafe_backup_'))
+          .toList();
+
+      if (files.isEmpty) return null;
+
+      files.sort(
+        (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+      );
+
+      return files.first.path;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// List all failsafe backup files
+  Future<List<BackupFileInfo>> listBackups() async {
+    try {
+      final backupDir = await _getBackupDirectory();
+      if (backupDir == null) return [];
+
+      final files = backupDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.contains('failsafe_backup_'))
+          .toList();
+
+      final backups = <BackupFileInfo>[];
+      for (final file in files) {
+        try {
+          final stat = await file.stat();
+          backups.add(
+            BackupFileInfo(
+              path: file.path,
+              fileName: file.path.split('/').last,
+              size: stat.size,
+              modifiedAt: stat.modified,
+            ),
+          );
+        } catch (_) {}
+      }
+
+      backups.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+      return backups;
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+/// Information about a backup file
+class BackupFileInfo {
+  final String path;
+  final String fileName;
+  final int size;
+  final DateTime modifiedAt;
+
+  const BackupFileInfo({
+    required this.path,
+    required this.fileName,
+    required this.size,
+    required this.modifiedAt,
+  });
+
+  String get sizeFormatted {
+    if (size < 1024) return '$size B';
+    if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(1)} KB';
+    return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}

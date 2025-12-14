@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node
+**/node_modules/
+
+# Flutter (not needed in Docker build)
+mobile/
+
+# Test files
+**/*_test.go
+**/test/
+**/tests/
+
+# Local build artifacts
+backend/homeschool-keeper
+backend/homeschool-keeper.exe
+*.exe
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+
+# Coverage
+coverage/
+*.coverprofile

@@ -1,0 +1,63 @@
+# Dokploy Deployment Configuration
+# Homeschool Keeper
+
+app_name: "homeschool-keeper"
+domain: "homeschoolkeeper.app"  # Update with actual domain
+port: 8080
+
+# Docker Configuration
+docker:
+  image: "ghcr.io/cpuchip/homeschool-keeper:latest"
+  platform: "linux/amd64"
+  restart_policy: "unless-stopped"
+
+# Environment Variables (set in dokploy dashboard, not here)
+environment:
+  - PORT=8080
+  # Required secrets - MUST be set in Dokploy dashboard:
+  # SESSION_SECRET - min 32 chars, for cookie encryption (REQUIRED)
+  # ENCRYPTION_MASTER_KEY - min 32 chars, for PII field encryption (REQUIRED)
+  # MONGODB_URI - full MongoDB connection string (REQUIRED)
+  # JWT_SECRET - for mobile app auth (optional until mobile is live)
+  # DEV_MODE - set to "false" for production
+
+# Health Check
+health_check:
+  endpoint: "/api/health"
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+
+# Resource Limits
+resources:
+  memory: "512Mi"
+  cpu: "0.5"
+
+# SSL/TLS
+ssl:
+  enabled: true
+  auto_cert: true  # Let's Encrypt
+
+# Networking
+networking:
+  expose_port: 8080
+  internal_port: 8080
+
+# Deployment Strategy
+deployment:
+  strategy: "rolling_update"
+  max_unavailable: 0
+  max_surge: 1
+
+# Monitoring
+monitoring:
+  enabled: true
+  endpoints:
+    - path: "/api/health"
+      expected_status: 200
+
+# Logs
+logging:
+  level: "info"
+  retention_days: 14
