@@ -547,15 +547,26 @@ class _StudentsOverviewCard extends StatelessWidget {
             else
               Column(
                 children: students.take(3).map((student) {
-                  final color = student.avatarColor != null
-                      ? Color(
-                          int.parse(
-                                student.avatarColor!.replaceFirst('#', ''),
-                                radix: 16,
-                              ) |
-                              0xFF000000,
-                        )
-                      : Theme.of(context).colorScheme.primary;
+                  final fallbackColor = Theme.of(context).colorScheme.primary;
+                  final color = () {
+                    final raw = student.avatarColor;
+                    if (raw == null) return fallbackColor;
+
+                    final cleaned = raw.trim().replaceFirst('#', '');
+                    if (cleaned.isEmpty) return fallbackColor;
+
+                    final hex = cleaned.startsWith('0x')
+                        ? cleaned.substring(2)
+                        : cleaned;
+
+                    // Accept RRGGBB or AARRGGBB. Anything else falls back.
+                    final normalized = hex.length == 6 ? 'FF$hex' : hex;
+                    if (normalized.length != 8) return fallbackColor;
+
+                    final parsed = int.tryParse(normalized, radix: 16);
+                    if (parsed == null) return fallbackColor;
+                    return Color(parsed);
+                  }();
 
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
