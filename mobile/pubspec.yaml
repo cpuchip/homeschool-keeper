@@ -1,0 +1,54 @@
+name: homeschool_keeper
+description: "Homeschool record keeping and logging app for parents"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  go_router: ^14.2.0
+  dio: ^5.5.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.3
+  path: ^1.9.0  # Path manipulation utilities
+  connectivity_plus: ^6.0.3
+  intl: ^0.19.0
+  image_picker: ^1.1.2
+  flutter_secure_storage: ^9.2.2
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.1
+  uuid: ^4.4.0
+  fl_chart: ^0.68.0
+  cupertino_icons: ^1.0.8
+  open_filex: ^4.5.0  # For opening file browser at backup location
+  pdf: ^3.11.0        # PDF generation
+  printing: ^5.13.3   # Print and share PDFs
+  share_plus: ^10.1.3 # Share files
+  http: ^1.2.2        # For R2 pre-signed URL uploads
+  package_info_plus: ^8.0.0  # App version info for telemetry
+  google_sign_in: ^6.2.1  # Google OAuth authentication
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.11
+  riverpod_generator: ^2.4.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+  hive_generator: ^2.0.1
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
