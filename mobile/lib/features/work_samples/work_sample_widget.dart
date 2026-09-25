@@ -43,13 +43,27 @@ class _WorkSampleAttachmentsState extends ConsumerState<WorkSampleAttachments> {
   }
 
   Future<void> _loadSamples() async {
-    final repository = ref.read(workSampleRepositoryProvider);
-    setState(() {
-      _samples = repository.getByLogEntry(
+    final service = ref.read(workSampleServiceProvider);
+    try {
+      final samples = await service.getByLogEntry(
         widget.logEntryId,
         groupId: widget.groupId,
       );
-    });
+      if (!mounted) return;
+      setState(() {
+        _samples = samples;
+      });
+    } catch (_) {
+      // Fall back to showing whatever local data exists
+      final repository = ref.read(workSampleRepositoryProvider);
+      if (!mounted) return;
+      setState(() {
+        _samples = repository.getByLogEntry(
+          widget.logEntryId,
+          groupId: widget.groupId,
+        );
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -89,6 +103,11 @@ class _WorkSampleAttachmentsState extends ConsumerState<WorkSampleAttachments> {
         uploadedBy: widget.uploadedBy,
         familyId: widget.familyId,
       );
+
+      // Kick off background upload (no-op if uploads are disabled).
+      final service = ref.read(workSampleServiceProvider);
+      await service.syncPendingUploads();
+
       await _loadSamples();
     } catch (e) {
       if (mounted) {
@@ -124,8 +143,8 @@ class _WorkSampleAttachmentsState extends ConsumerState<WorkSampleAttachments> {
 
     if (confirmed == true) {
       try {
-        final repository = ref.read(workSampleRepositoryProvider);
-        await repository.delete(sample.id);
+        final service = ref.read(workSampleServiceProvider);
+        await service.delete(sample.id);
         await _loadSamples();
       } catch (e) {
         if (mounted) {

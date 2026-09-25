@@ -20,18 +20,37 @@ class WorkSampleService {
 
   bool _isSyncing = false;
 
+  StorageUsage? _cachedUsage;
+  DateTime? _cachedUsageAt;
+
   WorkSampleService(this._api, this._repository);
 
-  /// Check if sync is enabled for the current user
-  bool get isSyncEnabled {
-    // TODO: Check family premium status from auth provider
-    return false; // Default to false until subscription is checked
+  Future<StorageUsage?> _getStorageUsageCached({Duration ttl = const Duration(minutes: 5)}) async {
+    final now = DateTime.now();
+    if (_cachedUsage != null && _cachedUsageAt != null && now.difference(_cachedUsageAt!) < ttl) {
+      return _cachedUsage;
+    }
+    final fresh = await getStorageUsage();
+    if (fresh != null) {
+      _cachedUsage = fresh;
+      _cachedUsageAt = now;
+    }
+    return fresh;
+  }
+
+  Future<bool> _uploadsEnabled() async {
+    final usage = await _getStorageUsageCached();
+    return usage?.uploadsEnabled ?? false;
   }
 
   /// Sync all pending work samples to R2
   Future<void> syncPendingUploads() async {
     if (_isSyncing) return;
-    if (!isSyncEnabled) return;
+
+    // Only attempt uploads if the backend says uploads are enabled.
+    // (If disabled, we still keep attachments locally.)
+    final enabled = await _uploadsEnabled();
+    if (!enabled) return;
 
     // Check network connectivity
     final connectivity = await Connectivity().checkConnectivity();
@@ -129,25 +148,24 @@ class WorkSampleService {
   Future<List<WorkSample>> getByLogEntry(String logEntryId, {String? groupId}) async {
     // Get local samples
     final local = _repository.getByLogEntry(logEntryId, groupId: groupId);
-    
-    // If online and synced, try to get from backend too
-    if (isSyncEnabled) {
-      try {
-        final response = await _api.get('/v1/logs/$logEntryId/work-samples');
-        final remote = (response.data as List)
-            .map((json) => WorkSample.fromJson(json as Map<String, dynamic>))
-            .toList();
-        
-        // Merge: prefer local for matching IDs, add any remote-only
-        final localIds = local.map((s) => s.id).toSet();
-        final remoteOnly = remote.where((s) => !localIds.contains(s.id)).toList();
-        
-        return [...local, ...remoteOnly];
-      } catch (e) {
-        // Fallback to local only
-      }
+
+    // Best-effort: also try to fetch remote samples so attachments created on web
+    // can appear on mobile.
+    try {
+      final response = await _api.get('/v1/logs/$logEntryId/work-samples');
+      final remote = (response.data as List)
+          .map((json) => WorkSample.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      // Merge: prefer local for matching IDs, add any remote-only
+      final localIds = local.map((s) => s.id).toSet();
+      final remoteOnly = remote.where((s) => !localIds.contains(s.id)).toList();
+
+      return [...local, ...remoteOnly];
+    } catch (e) {
+      // Fallback to local only
     }
-    
+
     return local;
   }
 
@@ -157,7 +175,7 @@ class WorkSampleService {
     if (sample == null) return;
 
     // Delete from backend if synced
-    if (sample.syncStatus == SyncStatus.synced && isSyncEnabled) {
+    if (sample.syncStatus == SyncStatus.synced) {
       try {
         await _api.delete('/v1/work-samples/$id');
       } catch (e) {

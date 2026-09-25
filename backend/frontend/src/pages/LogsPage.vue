@@ -4,9 +4,10 @@ import { useLogsStore } from '@/stores/logs'
 import { useStudentsStore } from '@/stores/students'
 import { useSubjectsStore } from '@/stores/subjects'
 import { useAuthStore } from '@/stores/auth'
-import { BaseModal, SchoolYearSelector, GroupedLogRow } from '@/components/common'
+import { BaseModal, SchoolYearSelector, GroupedLogRow, WorkSampleUpload } from '@/components/common'
+import { uploadsApi } from '@/api/uploads'
 import { toast } from '@/composables/useToast'
-import type { LogEntry } from '@/types'
+import type { LogEntry, WorkSample } from '@/types'
 
 const logsStore = useLogsStore()
 const studentsStore = useStudentsStore()
@@ -25,6 +26,18 @@ const editingLog = ref<LogEntry | null>(null)
 const editHours = ref(1)
 const editDescription = ref('')
 const saving = ref(false)
+
+// Work samples (attachments)
+const editWorkSamples = ref<WorkSample[]>([])
+const workSamplesLoading = ref(false)
+
+function onWorkSampleUploaded(sample: WorkSample) {
+  editWorkSamples.value = [...editWorkSamples.value, sample]
+}
+
+function onWorkSampleDeleted(id: string) {
+  editWorkSamples.value = editWorkSamples.value.filter(s => s.id !== id)
+}
 
 // Delete confirmation
 const showDeleteModal = ref(false)
@@ -160,7 +173,31 @@ function openEditModal(log: LogEntry) {
   editHours.value = log.hours
   editDescription.value = log.description || ''
   showEditModal.value = true
+
+  // Load attachments (best-effort)
+  editWorkSamples.value = []
+  workSamplesLoading.value = true
+  uploadsApi.getByLogEntry(log.id)
+    .then((samples) => {
+      editWorkSamples.value = samples
+    })
+    .catch(() => {
+      // Non-blocking; avoid toasting on every open if backend unavailable
+      editWorkSamples.value = []
+    })
+    .finally(() => {
+      workSamplesLoading.value = false
+    })
 }
+
+watch(showEditModal, (open) => {
+  if (!open) {
+    // Clear to avoid stale attachments showing for the next log
+    editingLog.value = null
+    editWorkSamples.value = []
+    workSamplesLoading.value = false
+  }
+})
 
 async function saveEdit() {
   if (!editingLog.value) return
@@ -365,6 +402,18 @@ onMounted(async () => {
             class="input mt-1"
             placeholder="What was learned?"
           ></textarea>
+        </div>
+
+        <div>
+          <label class="label">Attachments</label>
+          <div v-if="workSamplesLoading" class="text-sm text-gray-500">Loading attachments...</div>
+          <WorkSampleUpload
+            v-else-if="editingLog"
+            :log-entry-id="editingLog.id"
+            :work-samples="editWorkSamples"
+            @uploaded="onWorkSampleUploaded"
+            @deleted="onWorkSampleDeleted"
+          />
         </div>
       </div>
       <template #footer>
